@@ -1,1 +1,1 @@
-# sportBuddy
+# sportsBuddy

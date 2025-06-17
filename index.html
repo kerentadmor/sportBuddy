@@ -1,0 +1,1638 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SportsBuddy AI - מוצא מתקני ספורט בישראל</title>
+    <meta name="description" content="מצא מתקני ספורט בישראל עם בדיקת מזג אוויר חכמה">
+    <meta name="keywords" content="ספורט, מתקנים, ישראל, בריכה, אולם ספורט, כדורגל">
+    
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            direction: rtl;
+            padding: 10px;
+        }
+
+        .chat-container {
+            width: min(450px, 100%);
+            height: min(700px, 90vh);
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.15);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .chat-header {
+            background: linear-gradient(135deg, #4CAF50, #45a049);
+            color: white;
+            padding: 20px;
+            text-align: center;
+            position: relative;
+        }
+
+        .header-title {
+            font-size: 20px;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+
+        .header-subtitle {
+            font-size: 12px;
+            opacity: 0.9;
+        }
+
+        .new-chat-btn {
+            position: absolute;
+            top: 15px;
+            left: 15px;
+            background: rgba(255,255,255,0.2);
+            border: 1px solid rgba(255,255,255,0.3);
+            color: white;
+            padding: 6px 10px;
+            border-radius: 15px;
+            font-size: 11px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .new-chat-btn:hover {
+            background: rgba(255,255,255,0.3);
+        }
+
+        .status-badge {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            background: rgba(255,255,255,0.2);
+            border: 1px solid rgba(255,255,255,0.3);
+            color: white;
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 10px;
+        }
+
+        .messages-container {
+            flex: 1;
+            padding: 15px;
+            overflow-y: auto;
+            background: #f8f9fa;
+        }
+
+        .message {
+            margin-bottom: 15px;
+            display: flex;
+            align-items: flex-start;
+            animation: fadeIn 0.3s ease;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .message.bot { justify-content: flex-start; }
+        .message.user { justify-content: flex-end; }
+
+        .message-bubble {
+            max-width: 80%;
+            padding: 12px 16px;
+            border-radius: 16px;
+            font-size: 14px;
+            line-height: 1.4;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+        }
+
+        .message.bot .message-bubble {
+            background: white;
+            border: 1px solid #e1e8ed;
+            margin-right: 8px;
+        }
+
+        .message.user .message-bubble {
+            background: #4CAF50;
+            color: white;
+            margin-left: 8px;
+        }
+
+        .facility-card {
+            background: white;
+            border: 1px solid #e9ecef;
+            border-radius: 12px;
+            padding: 15px;
+            margin: 10px 0;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+        }
+
+        .facility-name {
+            font-weight: bold;
+            color: #2c3e50;
+            margin-bottom: 8px;
+            font-size: 15px;
+        }
+
+        .facility-type {
+            background: #e8f5e8;
+            color: #2e7d2e;
+            padding: 3px 8px;
+            border-radius: 8px;
+            font-size: 11px;
+            display: inline-block;
+            margin-bottom: 8px;
+        }
+
+        .facility-details {
+            font-size: 13px;
+            color: #666;
+            line-height: 1.5;
+        }
+
+        .facility-link {
+            display: inline-block;
+            background: #4CAF50;
+            color: white;
+            padding: 8px 12px;
+            border-radius: 16px;
+            text-decoration: none;
+            font-size: 12px;
+            margin-top: 10px;
+            margin-left: 8px;
+            transition: background 0.3s;
+        }
+
+        .facility-link:hover {
+            background: #45a049;
+        }
+
+        .typing-indicator {
+            display: none;
+            padding: 10px 16px;
+            background: white;
+            border: 1px solid #e1e8ed;
+            border-radius: 16px;
+            margin-right: 8px;
+            max-width: 60px;
+        }
+
+        .typing-dots {
+            display: flex;
+            gap: 4px;
+        }
+
+        .typing-dots span {
+            width: 6px;
+            height: 6px;
+            background: #999;
+            border-radius: 50%;
+            animation: typing 1.4s infinite;
+        }
+
+        .typing-dots span:nth-child(2) { animation-delay: 0.2s; }
+        .typing-dots span:nth-child(3) { animation-delay: 0.4s; }
+
+        @keyframes typing {
+            0%, 60%, 100% { transform: translateY(0); }
+            30% { transform: translateY(-8px); }
+        }
+
+        .input-container {
+            display: flex;
+            padding: 15px;
+            background: white;
+            border-top: 1px solid #e1e8ed;
+        }
+
+        .message-input {
+            flex: 1;
+            border: 1px solid #ddd;
+            border-radius: 20px;
+            padding: 10px 16px;
+            font-size: 14px;
+            outline: none;
+            transition: border-color 0.3s;
+            direction: rtl;
+        }
+
+        .message-input:focus {
+            border-color: #4CAF50;
+        }
+
+        .send-btn {
+            background: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            margin-left: 10px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s;
+        }
+
+        .send-btn:hover {
+            background: #45a049;
+            transform: scale(1.05);
+        }
+
+        .send-btn:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .loading-indicator {
+            text-align: center;
+            padding: 20px;
+            color: #666;
+            font-style: italic;
+        }
+
+        .show-more-btn {
+            background: #f0f8ff;
+            border: 2px solid #4CAF50;
+            color: #4CAF50;
+            padding: 12px 20px;
+            border-radius: 20px;
+            font-size: 14px;
+            font-weight: bold;
+            cursor: pointer;
+            display: inline-block;
+            margin: 10px 0;
+            transition: all 0.3s;
+            text-align: center;
+            width: 100%;
+        }
+
+        .show-more-btn:hover {
+            background: #4CAF50;
+            color: white;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(76, 175, 80, 0.3);
+        }
+
+        .error-message {
+            background: #ffebee;
+            color: #c62828;
+            padding: 10px;
+            border-radius: 8px;
+            margin: 10px 0;
+            border: 1px solid #ffcdd2;
+        }
+
+        .off-topic-message {
+            background: linear-gradient(135deg, #e3f2fd, #f0f8ff);
+            border: 2px solid #2196F3;
+            padding: 12px;
+            border-radius: 12px;
+            margin: 10px 0;
+            font-size: 14px;
+        }
+
+        .sports-suggestion {
+            background: linear-gradient(135deg, #e8f5e8, #f1f8e9);
+            border: 2px solid #4CAF50;
+            padding: 10px;
+            border-radius: 10px;
+            margin: 8px 0;
+            font-size: 13px;
+        }
+
+        .connection-status {
+            padding: 8px 12px;
+            border-radius: 6px;
+            font-size: 12px;
+            margin: 10px 0;
+        }
+
+        .connection-online {
+            background: #e8f5e8;
+            color: #2e7d2e;
+            border: 1px solid #4CAF50;
+        }
+
+        .connection-offline {
+            background: #ffebee;
+            color: #c62828;
+            border: 1px solid #f44336;
+        }
+
+        @media (max-width: 450px) {
+            body {
+                padding: 0;
+            }
+            
+            .chat-container {
+                width: 100%;
+                height: 100vh;
+                border-radius: 0;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="chat-container">
+        <div class="chat-header">
+            <button class="new-chat-btn" onclick="startNewConversation()">🔄 שיחה חדשה</button>
+            <div class="status-badge" id="statusBadge">מתחבר לשרת...</div>
+            <div class="header-title">SportsBuddy AI</div>
+            <div class="header-subtitle">מוצא מתקני ספורט בישראל - עם מזג אוויר חכם!</div>
+        </div>
+        
+        <div class="messages-container" id="messagesContainer">
+            <div class="message bot">
+                <div class="message-bubble">
+                    <div class="loading-indicator" id="loadingMessage">
+                        🔄 מתחבר לשרת ומטען נתוני מתקני ספורט...<br>
+                        <div class="connection-status connection-offline" id="connectionStatus">
+                            📡 בודק חיבור לאינטרנט...
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="typing-indicator" id="typingIndicator">
+                <div class="typing-dots">
+                    <span></span>
+                    <span></span>
+                    <span></span>
+                </div>
+            </div>
+        </div>
+        
+        <div class="input-container">
+            <input type="text" class="message-input" id="messageInput" placeholder="מתחבר לשרת..." onkeypress="handleKeyPress(event)" disabled>
+            <button class="send-btn" onclick="sendMessage()" disabled id="sendButton">
+                ➤
+            </button>
+        </div>
+    </div>
+
+    <script>
+        // 🌐 Global configuration for hosting
+        const CONFIG = {
+            // 📍 Change this URL to your hosted JSON file location:
+            DATA_URL: './sports_facilities.json', // For GitHub Pages: 'https://yourusername.github.io/sportsbuddy/sports_facilities.json'
+            WEATHER_API_KEY: '0822972733a5c06eb6d8f1e51dc0cec3',
+            WEATHER_API_URL: 'https://api.openweathermap.org/data/2.5/weather',
+            RETRY_ATTEMPTS: 3,
+            RETRY_DELAY: 2000
+        };
+
+        // Global variables
+        let sportsData = [];
+        let isDataLoaded = false;
+        let dataSource = 'unknown';
+        let isOnline = navigator.onLine;
+        
+        // Conversation state
+        let conversationState = {
+            intent: null,
+            slots: {
+                location: null,
+                facility_type: null,
+                accessibility: null,
+                parking: null,
+                lighting: null,
+                time: null
+            },
+            weatherChecked: false,
+            weatherData: null,
+            searchResults: [],
+            currentPage: 0,
+            resultsPerPage: 3,
+            showMorePerPage: 10
+        };
+
+        // Network status monitoring
+        window.addEventListener('online', () => {
+            isOnline = true;
+            updateConnectionStatus(true);
+            if (!isDataLoaded) {
+                loadSportsData();
+            }
+        });
+
+        window.addEventListener('offline', () => {
+            isOnline = false;
+            updateConnectionStatus(false);
+        });
+
+        function updateConnectionStatus(online) {
+            const statusEl = document.getElementById('connectionStatus');
+            if (!statusEl) return;
+            
+            if (online) {
+                statusEl.className = 'connection-status connection-online';
+                statusEl.textContent = '🌐 מחובר לאינטרנט';
+            } else {
+                statusEl.className = 'connection-status connection-offline';
+                statusEl.textContent = '📡 אין חיבור לאינטרנט';
+            }
+        }
+
+        // Enhanced data loading with retry mechanism
+        async function loadSportsData() {
+            if (!isOnline) {
+                showOfflineMessage();
+                return;
+            }
+
+            updateStatusBadge('מתחבר לשרת...');
+            
+            for (let attempt = 1; attempt <= CONFIG.RETRY_ATTEMPTS; attempt++) {
+                try {
+                    console.log(`🔄 Attempt ${attempt}/${CONFIG.RETRY_ATTEMPTS} - Loading data from: ${CONFIG.DATA_URL}`);
+                    
+                    updateStatusBadge(`טוען נתונים... (${attempt}/${CONFIG.RETRY_ATTEMPTS})`);
+                    
+                    const response = await fetch(CONFIG.DATA_URL, {
+                        method: 'GET',
+                        headers: {
+                            'Accept': 'application/json',
+                            'Content-Type': 'application/json'
+                        },
+                        cache: 'no-cache' // Always get fresh data
+                    });
+
+                    console.log(`📡 Response status: ${response.status} ${response.statusText}`);
+                    
+                    if (!response.ok) {
+                        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                    }
+
+                    const data = await response.json();
+                    console.log(`✅ Data loaded successfully: ${data.length} facilities`);
+                    
+                    if (Array.isArray(data) && data.length > 0) {
+                        // Validate data structure
+                        const sampleFacility = data[0];
+                        if (sampleFacility['ישוב'] || sampleFacility['סוג מתקן']) {
+                            sportsData = data;
+                            dataSource = CONFIG.DATA_URL;
+                            isDataLoaded = true;
+                            updateStatusBadge(`${sportsData.length} מתקנים`);
+                            showSuccessMessage();
+                            enableInterface();
+                            updateConnectionStatus(true);
+                            return;
+                        } else {
+                            throw new Error('נתונים לא תקינים - מבנה קובץ שגוי');
+                        }
+                    } else {
+                        throw new Error('קובץ הנתונים ריק או לא תקין');
+                    }
+
+                } catch (error) {
+                    console.error(`❌ Attempt ${attempt} failed:`, error.message);
+                    
+                    if (attempt < CONFIG.RETRY_ATTEMPTS) {
+                        updateStatusBadge(`כשל בטעינה - מנסה שוב... (${attempt}/${CONFIG.RETRY_ATTEMPTS})`);
+                        await new Promise(resolve => setTimeout(resolve, CONFIG.RETRY_DELAY));
+                    } else {
+                        console.error('💥 All attempts failed');
+                        showErrorMessage(error.message);
+                    }
+                }
+            }
+        }
+
+        function showOfflineMessage() {
+            const loadingMsg = document.getElementById('loadingMessage');
+            if (loadingMsg) {
+                loadingMsg.innerHTML = `
+                    📡 <strong>אין חיבור לאינטרנט</strong><br><br>
+                    האפליקציה זקוקה לחיבור אינטרנט כדי לטעון את נתוני המתקנים ולבדוק מזג אוויר.<br><br>
+                    🔄 <strong>אנא בדוק את החיבור ורענן את הדף</strong>
+                `;
+            }
+            updateStatusBadge('אופליין');
+        }
+
+        function showSuccessMessage() {
+            const loadingMsg = document.getElementById('loadingMessage');
+            if (loadingMsg) {
+                loadingMsg.innerHTML = `
+                    ✅ <strong>שלום! איך אני יכול לעזור לך היום?</strong><br><br>
+                    אני SportsBuddy - הבוט שמתמחה במציאת מתקני ספורט בישראל עם בדיקת מזג אוויר חכמה!<br><br>
+                    <div class="connection-status connection-online">
+                        🌐 מחובר לשרת • ${sportsData.length} מתקנים זמינים
+                    </div>
+                    <br>
+                    💬 <strong>דוגמאות לשאלות שאני יכול לענות עליהן:</strong><br>
+                    🏊‍♂️ "אני מחפש בריכה בתל אביב"<br>
+                    ⚽ "איפה יש מגרש כדורגל בחיפה?"<br>
+                    🌤️ "מה מזג האוויר בירושלים?"<br>
+                    🏃‍♂️ "אולם ספורט עם נגישות ברחובות"<br><br>
+                    <strong>פשוט כתוב מה אתה מחפש!</strong>
+                `;
+            }
+        }
+
+        function showErrorMessage(errorDetails) {
+            const loadingMsg = document.getElementById('loadingMessage');
+            if (loadingMsg) {
+                loadingMsg.innerHTML = `
+                    ❌ <strong>שגיאה בטעינת הנתונים</strong><br><br>
+                    לא הצלחתי להתחבר לשרת הנתונים. זה יכול לקרות מהסיבות הבאות:<br><br>
+                    🔧 <strong>פתרונות מוצעים:</strong><br>
+                    • רענן את הדף (F5)<br>
+                    • בדוק את חיבור האינטרנט<br>
+                    • נסה שוב בעוד כמה דקות<br><br>
+                    <div class="error-message">
+                        <strong>פרטי השגיאה:</strong> ${errorDetails}
+                    </div>
+                    <button onclick="location.reload()" style="background: #4CAF50; color: white; border: none; padding: 10px 20px; border-radius: 8px; cursor: pointer; margin-top: 10px;">
+                        🔄 רענן את הדף
+                    </button>
+                `;
+            }
+            updateStatusBadge('שגיאה בטעינה');
+        }
+
+        // Outdoor facilities that need weather check
+        const OUTDOOR_FACILITIES = ['כדורגל', 'טניס', 'כדורעף', 'מיני'];
+
+        // Enhanced facility mappings
+        const FACILITY_MAPPINGS = {
+            'אולם': ['אולם ספורט קטן', 'אולם ספורט בינוני', 'אולם ספורט גדול', 'אולם התעמלות', 'אולם ספורט', 'אולם'],
+            'ספורט': ['אולם ספורט', 'מגרש ספורט', 'מתקן ספורט'],
+            'התעמלות': ['אולם התעמלות', 'אולם ספורט', 'התעמלות'],
+            'בריכה': ['בריכת שחיה - 25X12.5 מ\'', 'בריכת שחיה - 20X50 מ\'', 'בריכת שחיה במידות אחרות', 'בריכת שחיה', 'בריכה', 'בריכת'],
+            'שחייה': ['בריכת שחיה - 25X12.5 מ\'', 'בריכת שחיה - 20X50 מ\'', 'בריכת שחיה במידות אחרות', 'בריכת שחיה', 'בריכה', 'שחיה'],
+            'שחיה': ['בריכת שחיה - 25X12.5 מ\'', 'בריכת שחיה - 20X50 מ\'', 'בריכת שחיה במידות אחרות', 'בריכת שחיה', 'בריכה', 'שחיה'],
+            'כדורגל': ['מגרש כדורגל', 'אצטדיון כדורגל', 'מגרש ספורט משולב', 'כדורגל', 'מגרש דשא'],
+            'כדורסל': ['מגרש כדורסל', 'אולם ספורט', 'כדורסל'],
+            'טניס': ['מגרש טניס', 'טניס'],
+            'כדורעף': ['מגרש חול קבוע לכדורעף', 'מגרש כדורעף', 'כדורעף', 'חול'],
+            'כושר': ['מכון לכושר גופני', 'מתקן פתוח לכושר גופני', 'כושר', 'פיטנס'],
+            'מיני': ['מגרש מיני פיץ\'', 'מיני'],
+            'חול': ['מגרש חול קבוע', 'חול']
+        };
+        
+        // Current date helper
+        function getCurrentDate() {
+            const now = new Date();
+            const days = ['ראשון', 'שני', 'שלישי', 'רביעי', 'חמישי', 'שישי', 'שבת'];
+            const dayName = days[now.getDay()];
+            const date = now.getDate().toString().padStart(2, '0');
+            const month = (now.getMonth() + 1).toString().padStart(2, '0');
+            const year = now.getFullYear();
+            return `יום ${dayName}, ${date}/${month}/${year}`;
+        }
+
+        // Weather API integration with enhanced error handling
+        async function getWeatherDataForTime(cityName, requestedTime) {
+            if (!isOnline) {
+                console.log('❌ No internet connection for weather');
+                return null;
+            }
+
+            try {
+                console.log('🌤️ Fetching weather for:', cityName, 'at time:', requestedTime);
+                
+                const englishCityName = getEnglishCityName(cityName);
+                console.log('🌍 Using English city name:', englishCityName);
+                
+                const cleanCityName = englishCityName.replace(/[־\-]/, ' ').trim();
+                
+                const currentUrl = `${CONFIG.WEATHER_API_URL}?q=${encodeURIComponent(cleanCityName)}&appid=${CONFIG.WEATHER_API_KEY}&units=metric&lang=he`;
+                console.log('🔗 Weather API URL:', currentUrl);
+                
+                const response = await fetch(currentUrl, {
+                    method: 'GET',
+                    headers: {
+                        'Accept': 'application/json'
+                    }
+                });
+                console.log('📡 Weather API Response status:', response.status);
+                
+                if (!response.ok) {
+                    console.log('❌ Weather API failed:', response.status, response.statusText);
+                    return null;
+                }
+                
+                const data = await response.json();
+                console.log('✅ Weather data received:', data);
+                
+                return {
+                    temp: Math.round(data.main.temp),
+                    description: data.weather[0].description,
+                    main: data.weather[0].main,
+                    cityName: data.name,
+                    forecastTime: requestedTime,
+                    isForecast: false
+                };
+                
+            } catch (error) {
+                console.error('💥 Weather API error:', error);
+                return null;
+            }
+        }
+
+        // Legacy function for backward compatibility
+        async function getWeatherData(cityName) {
+            return await getWeatherDataForTime(cityName, 'עכשיו');
+        }
+
+        // Convert Hebrew city names to English for weather API
+        function getEnglishCityName(hebrewCity) {
+            const cityTranslations = {
+                'תל אביב-יפו': 'Tel Aviv',
+                'תל אביב': 'Tel Aviv',
+                'ירושלים': 'Jerusalem',
+                'חיפה': 'Haifa',
+                'באר שבע': 'Beer Sheva',
+                'פתח תקווה': 'Petah Tikva',
+                'נתניה': 'Netanya',
+                'אשדוד': 'Ashdod',
+                'ראשון לציון': 'Rishon LeZion',
+                'חולון': 'Holon',
+                'רחובות': 'Rehovot'
+            };
+            
+            return cityTranslations[hebrewCity] || hebrewCity;
+        }
+
+        // Context-aware weather feedback with time consideration
+        function getContextualWeatherFeedback(weatherData) {
+            if (!weatherData) return null;
+            
+            const { temp, main, description, cityName, forecastTime, isForecast } = weatherData;
+            
+            let timeContext = '';
+            if (isForecast) {
+                timeContext = ` ל${getTimeDisplayName(forecastTime)}`;
+            } else if (forecastTime && forecastTime !== 'עכשיו') {
+                timeContext = ` (תחזית עבור ${getTimeDisplayName(forecastTime)} מבוססת על מזג אוויר נוכחי)`;
+            }
+            
+            let feedback = `🌤️ <strong>מזג האוויר ב${cityName}${timeContext}:</strong> ${temp}°C, ${description}<br><br>`;
+            
+            // Rain/Storm conditions
+            if (main === 'Rain' || main === 'Thunderstorm' || main === 'Snow') {
+                if (forecastTime === 'מחר' || forecastTime === 'מחרתיים') {
+                    feedback += '🌧️ <strong>צפוי גשם – מומלץ לשקול מתקן ספורט מקורה.</strong><br>';
+                } else {
+                    feedback += '🌧️ <strong>יורד גשם כרגע – מומלץ לשקול מתקן ספורט מקורה.</strong><br>';
+                }
+                feedback += 'מתקנים מקורים כמו אולמות ספורט ובריכות יהיו אידיאליים!';
+            }
+            // Extreme heat
+            else if (temp > 32) {
+                if (forecastTime && forecastTime !== 'עכשיו') {
+                    feedback += '🔥 <strong>צפוי חום קיצוני. מומלץ להיזהר מהשמש, לשתות הרבה מים, ולהתאמן בשעות הקרירות יותר.</strong><br><br>';
+                } else {
+                    feedback += '🔥 <strong>חום קיצוני כרגע. מומלץ להיזהר מהשמש, לשתות הרבה מים, ולהתאמן בשעות הקרירות יותר.</strong><br><br>';
+                }
+                feedback += '💡 שקול לחפש מתקן מקורה או לתכנן פעילות בשעות הבוקר המוקדמות!';
+            }
+            // Very cold
+            else if (temp < 10) {
+                if (forecastTime && forecastTime !== 'עכשיו') {
+                    feedback += '🥶 <strong>צפוי קור - הקפד להתחמם היטב לפני הפעילות ולהלביש שכבות.</strong><br>';
+                } else {
+                    feedback += '🥶 <strong>קר בחוץ - הקפד להתחמם היטב לפני הפעילות ולהלביש שכבות.</strong><br>';
+                }
+                feedback += 'מתקנים מקורים יהיו נוחים יותר במזג אוויר כזה.';
+            }
+            // Perfect weather
+            else if (temp >= 18 && temp <= 25) {
+                if (forecastTime && forecastTime !== 'עכשיו') {
+                    feedback += '☀️ <strong>צפוי מזג אוויר מושלם - אפשר להתאמן בכל מקום!</strong><br>';
+                } else {
+                    feedback += '☀️ <strong>מזג אוויר מושלם - אפשר להתאמן בכל מקום!</strong><br>';
+                }
+                feedback += 'תנאים אידיאליים לפעילות בחוץ - מגרשי כדורגל, טניס, או כל פעילות אחרת!';
+            }
+            // Warm but manageable
+            else {
+                if (forecastTime && forecastTime !== 'עכשיו') {
+                    feedback += '🌤️ <strong>צפוי מזג אוויר נעים לפעילות בחוץ.</strong><br>';
+                } else {
+                    feedback += '🌤️ <strong>מזג אוויר נעים לפעילות בחוץ.</strong><br>';
+                }
+                if (temp > 28) {
+                    feedback += '💧 רק זכור לשתות מים במהלך הפעילות.';
+                } else {
+                    feedback += 'תנאים טובים לכל סוגי הפעילויות!';
+                }
+            }
+            
+            return feedback;
+        }
+
+        function getTimeDisplayName(timeCategory) {
+            const names = {
+                'בוקר': 'בבוקר',
+                'צהריים': 'בצהריים', 
+                'אחר הצהריים': 'אחר הצהריים',
+                'ערב': 'בערב',
+                'לילה': 'בלילה',
+                'עכשיו': 'כעת',
+                'היום': 'היום',
+                'מחר': 'מחר',
+                'מחרתיים': 'מחרתיים',
+                'השבוע': 'השבוע',
+                'סוף השבוע': 'בסוף השבוע',
+                'בעוד שעה': 'בעוד שעה',
+                'בעוד שעתיים': 'בעוד שעתיים'
+            };
+            return names[timeCategory] || timeCategory;
+        }
+
+        // Simplified intent recognition - sports vs non-sports
+        function recognizeIntent(message) {
+            const msgLower = message.toLowerCase();
+            console.log('🧠 Conversation state:', conversationState.intent); // Debug conversation state
+            
+            // If we're in the middle of a conversation, treat user input differently
+            if (conversationState.intent === 'search_facility') {
+                console.log('✅ In middle of search conversation - continuing as search_facility'); // Debug
+                
+                // BUT - check if they're asking for "more results" first
+                if (msgLower.includes('עוד') || msgLower.includes('הצג עוד') || msgLower.includes('עוד מתקנים')) {
+                    console.log('📋 User wants more results - returning show_more'); // Debug
+                    return 'show_more';
+                }
+                
+                // We're already in a search conversation, so any input should be treated as continuing the search
+                return 'search_facility';
+            }
+            
+            console.log('🔍 No active conversation, analyzing message:', msgLower); // Debug
+            
+            // Basic small talk patterns that we handle normally
+            const basicPatterns = {
+                greeting: ['שלום', 'היי', 'הי', 'בוקר טוב', 'ערב טוב', 'לילה טוב'],
+                thanks: ['תודה', 'תודה רבה', 'thanks', 'אני מודה', 'תודות'],
+                how_are_you: ['מה נשמע', 'איך הולך', 'מה שלומך', 'איך אתה מרגיש', 'איך אתה', 'מה המצב', 'איך החיים'],
+                what_day: ['איזה יום', 'מה היום', 'מה התאריך', 'איזה תאריך'],
+                capabilities: ['מה אתה יכול', 'מי אתה', 'מה אתה עושה', 'איך אתה עובד', 'מה התחום שלך'],
+                weather_specific: ['מה מזג האוויר', 'איך מזג האוויר', 'מזג אוויר', 'מזג האוויר היום', 'איך מזג האוויר היום'],
+                show_more: ['עוד', 'הצג עוד', 'עוד מתקנים', 'המשך', 'יותר', 'תן לי עוד']
+            };
+
+            // Check for basic patterns first
+            for (const [intent, patterns] of Object.entries(basicPatterns)) {
+                for (const pattern of patterns) {
+                    if (msgLower.includes(pattern)) {
+                        console.log('🎯 Found basic pattern:', pattern, '→', intent); // Debug
+                        return intent;
+                    }
+                }
+            }
+
+            // Sport facility related patterns
+            const searchPatterns = ['מחפש', 'מחפשת', 'רוצה', 'אני רוצה', 'צריך', 'צריכה', 'איפה', 'למצוא', 'תמצא לי', 'תחפש לי'];
+            const facilityPatterns = [
+                'אולם', 'בריכה', 'מגרש', 'ספורט', 'כדורגל', 'טניס', 'כדורסל', 'כדורעף',
+                'שחייה', 'התעמלות', 'כושר', 'פיטנס', 'ריצה', 'אימון', 'אימונים', 'פעילות',
+                'מתקן', 'מתקנים', 'מקום לספורט', 'מקום להתאמן', 'פעילות גופנית'
+            ];
+
+            // Check if it's a sports facility search
+            const hasSearchPattern = searchPatterns.some(p => msgLower.includes(p));
+            const hasFacilityPattern = facilityPatterns.some(p => msgLower.includes(p));
+            
+            if (hasSearchPattern || hasFacilityPattern) {
+                console.log('🏃‍♂️ Found sports pattern → search_facility'); // Debug
+                return 'search_facility';
+            }
+
+            console.log('❓ No pattern found → not_sports_related'); // Debug
+            // If none of the above - it's not sports related
+            return 'not_sports_related';
+        }
+
+        async function handleSmallTalk(intent, message) {
+            console.log('🎭 handleSmallTalk called with:', intent); // Debug
+            
+            const responses = {
+                greeting: 'שלום וברכה! 😊 איך אפשר לעזור לך למצוא מתקן ספורט היום?',
+                thanks: 'תמיד בשמחה! 🙌 אני כאן אם תצטרך מתקן ספורט כלשהו.',
+                how_are_you: 'הכל מצוין, תודה ששאלת! 😊 מוכן לעזור לך למצוא מתקן ספורט נהדר!',
+                what_day: `היום ${getCurrentDate()} 📅 יום נהדר לפעילות ספורט! רוצה שאמצא לך מתקן?`,
+                capabilities: 'אני צ\'אט בוט שמתמחה בעזרה עם מתקני ספורט בישראל 🤸‍♂️<br>אני יכול לעזור לך למצוא מתקנים ולבדוק מזג אוויר!'
+            };
+
+            // Simple response for anything not sports-related
+            const notSportsResponse = `
+                <div class="off-topic-message">
+                    🤔 אני לא יכול לעזור בזה - זה לא בתחום ההתמחות שלי!
+                </div>
+                <div class="sports-suggestion">
+                    🏃‍♂️ <strong>אני SportsBuddy - הבוט שמתמחה במציאת מתקני ספורט בישראל!</strong><br><br>
+                    💡 <strong>אני יכול לעזור לך למצוא:</strong><br>
+                    🏊‍♂️ בריכות שחייה<br>
+                    ⚽ מגרשי כדורגל<br>
+                    🏀 מגרשי כדורסל<br>
+                    🏋️‍♂️ אולמות ספורט וכושר<br>
+                    🎾 מגרשי טניס<br>
+                    ועוד הרבה מתקנים...<br><br>
+                    💬 <strong>פשוט כתוב מה אתה מחפש!</strong><br>
+                    לדוגמה: "בריכה בתל אביב" או "מגרש כדורגל בחיפה"
+                </div>
+            `;
+            
+            // Handle weather-specific queries
+            if (intent === 'weather_specific') {
+                console.log('🌤️ Handling weather query'); // Debug
+                const location = findLocationInData(message);
+                const timeFromMessage = extractTimeFromMessage(message) || 'עכשיו';
+                
+                if (location) {
+                    let weatherMessage = 'רגע אחד, בודק את מזג האוויר';
+                    if (timeFromMessage !== 'עכשיו') {
+                        weatherMessage += ` ב${location} ל${getTimeDisplayName(timeFromMessage)}`;
+                    } else {
+                        weatherMessage += ` ב${location}`;
+                    }
+                    weatherMessage += '... 🌤️';
+                    
+                    addMessage(weatherMessage, 'bot');
+                    showTypingIndicator();
+                    
+                    const weatherData = await getWeatherDataForTime(location, timeFromMessage);
+                    hideTypingIndicator();
+                    
+                    if (weatherData) {
+                        const weatherMessage = getContextualWeatherFeedback(weatherData);
+                        addMessage(weatherMessage, 'bot');
+                        
+                        // Add sports recommendation after weather
+                        setTimeout(() => {
+                            addMessage('💡 <strong>מוכן למצוא מתקן ספורט מתאים למזג האוויר?</strong><br>פשוט כתוב איזה סוג פעילות אתה מחפש! 🏃‍♂️', 'bot');
+                        }, 1000);
+                    } else {
+                        addMessage(`מצטער, לא הצלחתי לקבל נתוני מזג אוויר עבור ${location} כרגע. 😕<br><br>💡 <strong>אבל אני יכול לעזור לך למצוא מתקני ספורט!</strong><br>איזה סוג פעילות מעניין אותך?`, 'bot');
+                    }
+                } else {
+                    addMessage('איפה אתה רוצה לבדוק את מזג האוויר? 🌤️<br><br>💬 לדוגמה: "מה מזג האוויר בתל אביב?"<br><br>🏃‍♂️ <strong>ואחר כך אני אשמח לעזור לך למצוא מתקן ספורט מתאים!</strong>', 'bot');
+                }
+                return null;
+            }
+            
+            // Handle non-sports related questions
+            if (intent === 'not_sports_related') {
+                console.log('🚫 Returning not-sports response'); // Debug
+                return notSportsResponse;
+            }
+            
+            // Return basic responses for recognized intents
+            const basicResponse = responses[intent];
+            console.log('📝 Returning basic response for:', intent, basicResponse ? 'Found' : 'Not found'); // Debug
+            return basicResponse || notSportsResponse;
+        }
+
+        function findLocationInData(message) {
+            if (!sportsData || sportsData.length === 0) return null;
+            
+            const msgLower = message.toLowerCase();
+            const settlements = [...new Set(sportsData.map(f => f['ישוב']).filter(Boolean))];
+            
+            // Try to find location in data
+            for (const settlement of settlements) {
+                if (msgLower.includes(settlement.toLowerCase())) {
+                    return settlement;
+                }
+            }
+            
+            // Enhanced city patterns with English names for weather API
+            const cityPatterns = {
+                'תל אביב-יפו': ['תל אביב', 'תא', 'tel aviv'],
+                'ירושלים': ['ירושלים', 'jerusalem'],
+                'חיפה': ['חיפה', 'haifa'],
+                'באר שבע': ['באר שבע', 'beer sheva'],
+                'פתח תקווה': ['פתח תקווה', 'petah tikva'],
+                'נתניה': ['נתניה', 'netanya'],
+                'אשדוד': ['אשדוד', 'ashdod'],
+                'ראשון לציון': ['ראשון לציון', 'rishon lezion'],
+                'חולון': ['חולון', 'holon'],
+                'רחובות': ['רחובות', 'rehovot']
+            };
+            
+            for (const [city, patterns] of Object.entries(cityPatterns)) {
+                if (patterns.some(pattern => msgLower.includes(pattern))) {
+                    return city;
+                }
+            }
+            
+            return null;
+        }
+
+        function findFacilityTypeInData(message) {
+            const msgLower = message.toLowerCase();
+            
+            const searchPatterns = [
+                { patterns: ['בריכ', 'שחיי', 'שחיה'], match: 'בריכה' },
+                { patterns: ['אולם', 'התעמלות'], match: 'אולם' },
+                { patterns: ['כדורגל', 'דשא'], match: 'כדורגל' },
+                { patterns: ['כדורסל'], match: 'כדורסל' },
+                { patterns: ['טניס'], match: 'טניס' },
+                { patterns: ['כדורעף', 'חול'], match: 'כדורעף' },
+                { patterns: ['כושר', 'פיטנס'], match: 'כושר' }
+            ];
+            
+            for (const { patterns, match } of searchPatterns) {
+                if (patterns.some(pattern => msgLower.includes(pattern))) {
+                    return match;
+                }
+            }
+            
+            return null;
+        }
+
+        // Enhanced information extraction
+        function extractAllAvailableInfo(message) {
+            const msgLower = message.toLowerCase();
+            console.log('🔍 Comprehensive extraction from:', msgLower);
+            
+            const extractedInfo = {
+                facility_type: null,
+                location: null,
+                time: null,
+                accessibility: null,
+                parking: null,
+                lighting: null
+            };
+            
+            extractedInfo.facility_type = findFacilityTypeInData(message);
+            extractedInfo.location = findLocationInData(message);
+            extractedInfo.time = extractTimeFromMessage(message);
+            
+            if (msgLower.includes('נגיש') || msgLower.includes('מוגבל') || 
+                msgLower.includes('כיסא גלגל') || msgLower.includes('נכים')) {
+                extractedInfo.accessibility = 'כן';
+            } else if (msgLower.includes('לא נגיש') || msgLower.includes('בלי נגיש')) {
+                extractedInfo.accessibility = 'לא';
+            }
+            
+            if (msgLower.includes('חני') || msgLower.includes('רכב') || 
+                msgLower.includes('מקום חניה') || msgLower.includes('פארקינג')) {
+                extractedInfo.parking = 'כן';
+            } else if (msgLower.includes('בלי חני') || msgLower.includes('לא חני')) {
+                extractedInfo.parking = 'לא';
+            }
+            
+            if (msgLower.includes('תאור') || msgLower.includes('אור') || 
+                msgLower.includes('לילה') || msgLower.includes('בחושך') ||
+                msgLower.includes('מואר')) {
+                extractedInfo.lighting = 'כן';
+            } else if (msgLower.includes('בלי תאור') || msgLower.includes('לא תאור')) {
+                extractedInfo.lighting = 'לא';
+            }
+            
+            if (!extractedInfo.facility_type) {
+                if (msgLower.includes('לשחות') || msgLower.includes('שחייה')) {
+                    extractedInfo.facility_type = 'בריכת שחיה (50X20)';
+                } else if (msgLower.includes('לרוץ') || msgLower.includes('ריצה') || msgLower.includes('ג\'וגינג')) {
+                    extractedInfo.facility_type = 'מסלול אתלטיקה קלה';
+                } else if (msgLower.includes('להתאמן') && !extractedInfo.facility_type) {
+                    extractedInfo.facility_type = 'אולם ספורט בינוני';
+                }
+            }
+            
+            if (!extractedInfo.time) {
+                if (msgLower.includes('דחוף') || msgLower.includes('מיידי') || msgLower.includes('מהר')) {
+                    extractedInfo.time = 'עכשיו';
+                } else if (msgLower.includes('שבת') || msgLower.includes('סופ"ש') || msgLower.includes('סוף השבוע')) {
+                    extractedInfo.time = 'סוף השבוע';
+                }
+            }
+            
+            console.log('📝 Comprehensive extraction results:', extractedInfo);
+            return extractedInfo;
+        }
+
+        function extractEntities(message) {
+            const msgLower = message.toLowerCase();
+            const entities = {};
+            
+            if (!conversationState.slots.facility_type) {
+                entities.facility_type = findFacilityTypeInData(message);
+            }
+            
+            if (!conversationState.slots.location) {
+                entities.location = findLocationInData(message);
+            }
+            
+            if (!conversationState.slots.time) {
+                const timeEntity = extractTimeFromMessage(message);
+                if (timeEntity) {
+                    entities.time = timeEntity;
+                }
+            }
+            
+            const isYesResponse = msgLower.includes('כן') || msgLower.includes('yes') || 
+                                msgLower.includes('בוודאי') || msgLower.includes('חשוב לי');
+            const isNoResponse = msgLower.includes('לא') || msgLower.includes('no') || 
+                               msgLower.includes('לא חשוב') || msgLower.includes('בלי');
+            
+            if (msgLower.includes('נגיש') || msgLower.includes('מוגבל') || msgLower.includes('כיסא גלגל')) {
+                entities.accessibility = 'כן';
+            } else if (msgLower.includes('לא נגיש') || msgLower.includes('בלי נגיש')) {
+                entities.accessibility = 'לא';
+            } else if (conversationState.slots.accessibility === null) {
+                if (isYesResponse) entities.accessibility = 'כן';
+                if (isNoResponse) entities.accessibility = 'לא';
+            }
+            
+            if (msgLower.includes('חני') || msgLower.includes('רכב')) {
+                entities.parking = 'כן';
+            } else if (msgLower.includes('בלי חני') || msgLower.includes('לא חני')) {
+                entities.parking = 'לא';
+            } else if (conversationState.slots.parking === null && conversationState.slots.accessibility !== null) {
+                if (isYesResponse) entities.parking = 'כן';
+                if (isNoResponse) entities.parking = 'לא';
+            }
+            
+            if (msgLower.includes('תאור') || msgLower.includes('אור') || msgLower.includes('לילה')) {
+                entities.lighting = 'כן';
+            } else if (msgLower.includes('בלי תאור') || msgLower.includes('לא תאור')) {
+                entities.lighting = 'לא';
+            } else if (conversationState.slots.lighting === null && conversationState.slots.parking !== null) {
+                if (isYesResponse) entities.lighting = 'כן';
+                if (isNoResponse) entities.lighting = 'לא';
+            }
+            
+            return entities;
+        }
+
+        function extractTimeFromMessage(message) {
+            const msgLower = message.toLowerCase();
+            
+            const timePatterns = {
+                'עכשיו': 'עכשיו',
+                'כעת': 'עכשיו', 
+                'עכסיו': 'עכשיו',
+                'מיידי': 'עכשיו',
+                'דחוף': 'עכשיו',
+                'מהר': 'עכשיו',
+                'היום': 'היום',
+                'הלילה': 'לילה',
+                'הערב': 'ערב',
+                'הבוקר': 'בוקר',
+                'מחר': 'מחר',
+                'מחרתיים': 'מחרתיים',
+                'בערב': 'ערב',
+                'בבוקר': 'בוקר',
+                'בצהריים': 'צהריים',
+                'אחר הצהריים': 'אחר הצהריים',
+                'אחרי הצהריים': 'אחר הצהריים',
+                'בלילה': 'לילה',
+                'השבוע': 'השבוע',
+                'סוף השבוע': 'סוף השבוע',
+                'סופ"ש': 'סוף השבוע',
+                'בסופ"ש': 'סוף השבוע',
+                'שבת': 'סוף השבוע',
+                'בשבת': 'סוף השבוע',
+                'יום שישי': 'סוף השבוע',
+                'יום שבת': 'סוף השבוע',
+                'בעוד שעה': 'בעוד שעה',
+                'בעוד שעתיים': 'בעוד שעתיים',
+                'תוך כדי': 'עכשיו',
+                'כרגע': 'עכשיו',
+                'במהלך היום': 'היום',
+                'במהלך הערב': 'ערב',
+                'למחר': 'מחר',
+                'למחרת': 'מחר'
+            };
+            
+            for (const [pattern, normalized] of Object.entries(timePatterns)) {
+                if (msgLower.includes(pattern)) {
+                    console.log('⏰ Found time pattern:', pattern, '→', normalized);
+                    return normalized;
+                }
+            }
+            
+            const hourMatches = msgLower.match(/(?:בשעה|ב[־\-]?)(\d{1,2})/);
+            if (hourMatches) {
+                const hour = parseInt(hourMatches[1]);
+                if (hour >= 6 && hour <= 11) return 'בוקר';
+                if (hour >= 12 && hour <= 17) return 'צהריים';
+                if (hour >= 18 && hour <= 22) return 'ערב';
+                if (hour >= 23 || hour <= 5) return 'לילה';
+            }
+            
+            const dayPatterns = [
+                { pattern: /ביום ראשון|יום ראשון/i, value: 'השבוע' },
+                { pattern: /ביום שני|יום שני/i, value: 'השבוע' },
+                { pattern: /ביום שלישי|יום שלישי/i, value: 'השבוע' },
+                { pattern: /ביום רביעי|יום רביעי/i, value: 'השבוע' },
+                { pattern: /ביום חמישי|יום חמישי/i, value: 'השבוע' },
+                { pattern: /ביום שישי|יום שישי/i, value: 'סוף השבוע' },
+                { pattern: /ביום שבת|יום שבת/i, value: 'סוף השבוע' }
+            ];
+            
+            for (const dayPattern of dayPatterns) {
+                if (dayPattern.pattern.test(message)) {
+                    console.log('📅 Found day pattern:', dayPattern.value);
+                    return dayPattern.value;
+                }
+            }
+            
+            return null;
+        }
+
+        function updateSlots(entities) {
+            for (const [key, value] of Object.entries(entities)) {
+                if (value && conversationState.slots[key] === null) {
+                    conversationState.slots[key] = value;
+                }
+            }
+        }
+
+        function getMissingSlots() {
+            const required = ['location', 'facility_type', 'time', 'accessibility', 'parking', 'lighting'];
+            return required.filter(slot => conversationState.slots[slot] === null);
+        }
+
+        function askForMissingInfo(missingSlots) {
+            if (missingSlots.includes('location')) {
+                return 'באיזה עיר או יישוב אתה מעוניין? 🏙️';
+            }
+            if (missingSlots.includes('facility_type')) {
+                const availableTypes = getAvailableFacilityTypes();
+                let facilityPrompt = 'איזה סוג מתקן ספורט אתה מחפש? 🏃‍♂️<br><br>';
+                
+                if (availableTypes.length > 0) {
+                    facilityPrompt += '💡 <strong>דוגמאות למתקנים זמינים:</strong><br>';
+                    const examples = availableTypes.slice(0, 6);
+                    facilityPrompt += examples.map(type => `• ${type}`).join('<br>');
+                    facilityPrompt += '<br><br>💬 פשוט כתוב מה אתה מחפש!';
+                }
+                
+                return facilityPrompt;
+            }
+            if (missingSlots.includes('time')) {
+                return 'מתי אתה רוצה להתאמן? ⏰<br><br>💬 לדוגמה: "עכשיו", "מחר בבוקר", "היום בערב", "בעוד שעה"';
+            }
+            if (missingSlots.includes('accessibility')) {
+                return 'האם יש צורך בנגישות לאנשים עם מוגבלויות? (כן/לא) ♿';
+            }
+            if (missingSlots.includes('parking')) {
+                return 'האם חשוב לך שיהיה חניה? (כן/לא) 🚗';
+            }
+            if (missingSlots.includes('lighting')) {
+                return 'האם יש צורך בתאורה? (כן/לא) 💡';
+            }
+            return null;
+        }
+
+        function getAvailableFacilityTypes() {
+            if (!sportsData || sportsData.length === 0) return [];
+            
+            const types = [...new Set(sportsData.map(f => f['סוג מתקן']).filter(Boolean))];
+            return types.slice(0, 10); // Return top 10 types
+        }
+
+        function filterFacilities() {
+            if (!sportsData || sportsData.length === 0) return [];
+            
+            return sportsData.filter(facility => {
+                if (conversationState.slots.location) {
+                    const targetLocation = conversationState.slots.location.toLowerCase();
+                    const facilityLocation = (facility['ישוב'] || '').toLowerCase();
+                    if (!facilityLocation.includes(targetLocation)) return false;
+                }
+                
+                if (conversationState.slots.facility_type) {
+                    const targetTypes = FACILITY_MAPPINGS[conversationState.slots.facility_type] || [];
+                    const facilityType = (facility['סוג מתקן'] || '').toLowerCase();
+                    
+                    const matches = targetTypes.some(type => 
+                        facilityType.includes(type.toLowerCase())
+                    );
+                    
+                    if (!matches) return false;
+                }
+                
+                if (conversationState.slots.time) {
+                    const availability = facility['פנוי לפעילות'] || '';
+                    const timeCompatible = checkTimeCompatibility(conversationState.slots.time, availability);
+                    if (!timeCompatible.compatible) return false;
+                }
+                
+                if (conversationState.slots.accessibility === 'כן') {
+                    const accessibility = (facility['נגישות לנכים'] || '').toLowerCase();
+                    if (!accessibility.includes('כן')) return false;
+                }
+                
+                if (conversationState.slots.parking === 'כן') {
+                    const parking = (facility['חניה לרכבים'] || '').toLowerCase();
+                    if (!parking.includes('כן')) return false;
+                }
+                
+                if (conversationState.slots.lighting === 'כן') {
+                    const lighting = (facility['תאורה קיימת'] || '').toLowerCase();
+                    if (!lighting.includes('כן')) return false;
+                }
+                
+                return true;
+            });
+        }
+
+        function checkTimeCompatibility(requestedTime, facilityAvailability) {
+            const availability = facilityAvailability.toLowerCase();
+            
+            if (availability.includes('בתיאום') || availability.includes('תיאום')) {
+                return { 
+                    compatible: true, 
+                    note: 'זמין בתיאום מראש בלבד' 
+                };
+            }
+            
+            if (availability.includes('פתוח לקהל') || availability.includes('פתוח')) {
+                return { compatible: true, note: null };
+            }
+            
+            const timeMap = {
+                'בוקר': ['בוקר', 'שעות הבוקר', '06:', '07:', '08:', '09:', '10:', '11:'],
+                'צהריים': ['צהריים', 'אחר הצהריים', '12:', '13:', '14:', '15:', '16:', '17:'],
+                'ערב': ['ערב', 'שעות הערב', '18:', '19:', '20:', '21:', '22:'],
+                'לילה': ['לילה', 'שעות הלילה', '23:', '00:', '01:', '02:', '03:', '04:', '05:']
+            };
+            
+            if (availability.includes('רק') || availability.includes('אחר הצהריים') || 
+                availability.includes('בוקר') || availability.includes('ערב')) {
+                
+                const requestedTimeCategory = requestedTime;
+                const patterns = timeMap[requestedTimeCategory] || [requestedTimeCategory];
+                
+                const hasMatch = patterns.some(pattern => availability.includes(pattern));
+                
+                if (!hasMatch) {
+                    if (availability.includes('רק בוקר') && ['ערב', 'לילה', 'צהריים'].includes(requestedTimeCategory)) {
+                        return { 
+                            compatible: false, 
+                            note: `המתקן פתוח רק בשעות הבוקר, לא זמין ${getTimeDisplayName(requestedTimeCategory)}` 
+                        };
+                    }
+                    if (availability.includes('רק ערב') && ['בוקר', 'צהריים'].includes(requestedTimeCategory)) {
+                        return { 
+                            compatible: false, 
+                            note: `המתקן פתוח רק בשעות הערב, לא זמין ${getTimeDisplayName(requestedTimeCategory)}` 
+                        };
+                    }
+                    if (availability.includes('אחר הצהריים') && requestedTimeCategory === 'בוקר') {
+                        return { 
+                            compatible: false, 
+                            note: 'המתקן פתוח רק אחר הצהריים, לא זמין בבוקר' 
+                        };
+                    }
+                }
+            }
+            
+            return { compatible: true, note: null };
+        }
+
+        function displayPaginatedResults(facilities, startFromBeginning = true) {
+            if (startFromBeginning) {
+                conversationState.searchResults = facilities;
+                conversationState.currentPage = 0;
+            }
+        
+            if (!conversationState.searchResults || conversationState.searchResults.length === 0) {
+                addMessage('לא מצאתי מתקנים להצגה. 😕', 'bot');
+                return;
+            }
+        
+            const isFirstPage = conversationState.currentPage === 0;
+            const pageSize = isFirstPage ? conversationState.resultsPerPage : conversationState.showMorePerPage;
+        
+            const startIndex = isFirstPage
+                ? 0
+                : conversationState.resultsPerPage + (conversationState.currentPage - 1) * conversationState.showMorePerPage;
+        
+            const endIndex = startIndex + pageSize;
+            const currentPageResults = conversationState.searchResults.slice(startIndex, endIndex);
+        
+            if (currentPageResults.length === 0) {
+                addMessage('זה כל המתקנים שמצאתי! 😊', 'bot');
+                return;
+            }
+        
+            if (conversationState.currentPage === 0) {
+                const totalResults = conversationState.searchResults.length;
+                let resultsMessage = totalResults === 1 ?
+                    '🎯 מצאתי את המתקן המושלם בשבילך:' :
+                    `🎯 מצאתי ${totalResults} מתקנים שמתאימים לבקשתך. מציג ${Math.min(3, totalResults)} ראשונים:`;
+                addMessage(resultsMessage, 'bot');
+            }
+        
+            currentPageResults.forEach((facility, index) => {
+                setTimeout(() => {
+                    addMessage(createFacilityCard(facility), 'bot');
+                }, index * 200);
+            });
+        
+            const remainingResults = conversationState.searchResults.length - endIndex;
+        
+            if (remainingResults > 0) {
+                setTimeout(() => {
+                    const showMoreButton = `
+                        <div class="show-more-btn" onclick="showMoreResults()">
+                            👉 הצג עוד ${Math.min(remainingResults, conversationState.showMorePerPage)} מתקנים 🔍
+                        </div>
+                        <div style="text-align: center; font-size: 12px; color: #666; margin-top: 5px;">
+                            עוד ${remainingResults} מתקנים זמינים
+                        </div>
+                    `;
+                    addMessage(showMoreButton, 'bot');
+                }, currentPageResults.length * 200 + 500);
+            }
+        
+            conversationState.currentPage++;
+        }
+
+
+        function showMoreResults() {
+            displayPaginatedResults(conversationState.searchResults, false);
+        }
+
+        function createFacilityCard(facility) {
+            const facilityName = facility['שם המתקן'] || 'שם לא זמין';
+            const facilityType = facility['סוג מתקן'] || 'סוג לא צוין';
+            const city = facility['ישוב'] || 'עיר לא צוינה';
+            const phone = facility['טלפון איש קשר'];
+            const availability = facility['פנוי לפעילות'] || 'לא צוין';
+            
+            const hasValidPhone = phone && phone !== 'לא קיים' && phone.trim() !== '';
+            
+            let timeNote = '';
+            if (conversationState.slots.time) {
+                const timeCheck = checkTimeCompatibility(conversationState.slots.time, availability);
+                if (timeCheck.note) {
+                    timeNote = `<br>⏰ ${timeCheck.note}`;
+                }
+            }
+            
+            const googleMapsUrl = `https://www.google.com/maps/search/${encodeURIComponent(facilityName + ', ' + city)}`;
+            
+            return `<div class="facility-card">
+                <div class="facility-name">${facilityName}</div>
+                <div class="facility-type">${facilityType}</div>
+                <div class="facility-details">
+                    📍 <strong>${city}</strong><br>
+                    ${hasValidPhone ? '📞 ' + phone + '<br>' : ''}
+                    🕐 <strong>זמינות:</strong> ${availability}${timeNote}
+                </div>
+                <a href="${googleMapsUrl}" target="_blank" class="facility-link">🗺️ מפות גוגל</a>
+                ${hasValidPhone ? `<a href="tel:${phone}" class="facility-link">📞 התקשר</a>` : ''}
+            </div>`;
+        }
+
+        async function processMessage(message) {
+            if (!isDataLoaded) {
+                if (!isOnline) {
+                    addMessage('📡 אין חיבור לאינטרנט. אנא בדוק את החיבור ורענן את הדף.', 'bot');
+                } else {
+                    addMessage('⚠️ נתוני המתקנים עדיין נטענים. אנא המתן...', 'bot');
+                }
+                return;
+            }
+            
+            showTypingIndicator();
+            
+            try {
+                const intent = recognizeIntent(message);
+                hideTypingIndicator();
+                
+                if (['greeting', 'thanks', 'how_are_you', 'what_day', 'capabilities', 'weather_specific', 'off_topic'].includes(intent)) {
+                    const response = await handleSmallTalk(intent, message);
+                    if (response) {
+                        addMessage(response, 'bot');
+                    }
+                    return;
+                }
+                
+                if (intent === 'show_more') {
+                    if (conversationState.searchResults.length > 0) {
+                        showMoreResults();
+                    } else {
+                        addMessage('אין עוד תוצאות להציג. בוא נחפש משהו חדש! 😊', 'bot');
+                    }
+                    return;
+                }
+                
+                if (intent === 'search_facility') {
+                    if (conversationState.intent === null) {
+                        conversationState.intent = 'search_facility';
+                    }
+                    
+                    const entities = extractEntities(message);
+                    updateSlots(entities);
+                    
+                    const hasBasicInfo = conversationState.slots.location && conversationState.slots.facility_type;
+                    
+                    if (hasBasicInfo && !conversationState.weatherChecked && 
+                        OUTDOOR_FACILITIES.includes(conversationState.slots.facility_type)) {
+                        
+                        addMessage('רגע אחד, בודק את מזג האוויר... 🌤️', 'bot');
+                        showTypingIndicator();
+                        
+                        const weatherData = await getWeatherData(conversationState.slots.location);
+                        conversationState.weatherData = weatherData;
+                        conversationState.weatherChecked = true;
+                        
+                        hideTypingIndicator();
+                        
+                        if (weatherData) {
+                            const contextualFeedback = getContextualWeatherFeedback(weatherData);
+                            if (contextualFeedback) {
+                                addMessage(contextualFeedback, 'bot');
+                            }
+                        } else {
+                            addMessage('לא הצלחתי לקבל נתוני מזג אוויר, אבל אמשיך לחפש מתקנים! 🌤️', 'bot');
+                        }
+                    }
+                    
+                    if (conversationState.weatherChecked && message.toLowerCase().includes('מקורה')) {
+                        conversationState.slots.facility_type = 'אולם';
+                        addMessage('מעולה! מחפש לך מתקן מקורה... 🏢', 'bot');
+                    }
+                    
+                    const missingSlots = getMissingSlots();
+                    
+                    if (missingSlots.length > 0) {
+                        const question = askForMissingInfo(missingSlots);
+                        if (question) {
+                            addMessage(question, 'bot');
+                            return;
+                        }
+                    }
+                    
+                    const facilities = filterFacilities();
+                    
+                    if (facilities.length > 0) {
+                        displayPaginatedResults(facilities, true);
+                    } else {
+                        addMessage('לא מצאתי מתקנים שמתאימים לבקשתך. 😔<br><br>💡 נסה לשנות את הקריטריונים או לכתוב בקשה אחרת.', 'bot');
+                    }
+                    
+                    conversationState = {
+                        intent: null,
+                        slots: {
+                            location: null,
+                            facility_type: null,
+                            accessibility: null,
+                            parking: null,
+                            lighting: null,
+                            time: null
+                        },
+                        weatherChecked: false,
+                        weatherData: null,
+                        searchResults: [],
+                        currentPage: 0,
+                        resultsPerPage: 3,
+                        showMorePerPage: 10
+                    };
+                }
+                
+            } catch (error) {
+                hideTypingIndicator();
+                console.error('Error processing message:', error);
+                addMessage('⚠️ מצטער, אירעה שגיאה. אנא נסה שוב.', 'bot');
+            }
+        }
+
+        // UI functions
+        function handleKeyPress(event) {
+            if (event.key === 'Enter' && !event.shiftKey) {
+                event.preventDefault();
+                sendMessage();
+            }
+        }
+
+        function sendMessage() {
+            const input = document.getElementById('messageInput');
+            const message = input.value.trim();
+            
+            console.log('📤 sendMessage called with:', message); // Debug
+            
+            if (message && isDataLoaded) {
+                console.log('✅ Message valid, calling processMessage'); // Debug
+                addMessage(message, 'user');
+                input.value = '';
+                setTimeout(() => {
+                    console.log('⏰ About to call processMessage'); // Debug
+                    try {
+                        console.log('🚀 Calling processMessage now'); // Debug
+                        processMessage(message);
+                    } catch (error) {
+                        console.error('💥 Error calling processMessage:', error); // Debug
+                    }
+                }, 500);
+            } else {
+                console.log('❌ Message invalid or data not loaded. Message:', message, 'DataLoaded:', isDataLoaded); // Debug
+            }
+        }
+
+        function addMessage(content, sender) {
+            const messagesContainer = document.getElementById('messagesContainer');
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${sender}`;
+            
+            const bubbleDiv = document.createElement('div');
+            bubbleDiv.className = 'message-bubble';
+            bubbleDiv.innerHTML = content;
+            
+            messageDiv.appendChild(bubbleDiv);
+            messagesContainer.insertBefore(messageDiv, document.getElementById('typingIndicator'));
+            messagesContainer.scrollTop = messagesContainer.scrollHeight;
+        }
+
+        function showTypingIndicator() {
+            document.getElementById('typingIndicator').style.display = 'block';
+            const messagesContainer = document.getElementById('messagesContainer');
+            messagesContainer.scrollTop = messagesContainer.scrollHeight;
+        }
+
+        function hideTypingIndicator() {
+            document.getElementById('typingIndicator').style.display = 'none';
+        }
+
+        function updateStatusBadge(text) {
+            document.getElementById('statusBadge').textContent = text;
+        }
+
+        function enableInterface() {
+            document.getElementById('messageInput').disabled = false;
+            document.getElementById('sendButton').disabled = false;
+            document.getElementById('messageInput').placeholder = 'כתוב מה אתה מחפש...';
+        }
+
+        function startNewConversation() {
+            const messagesContainer = document.getElementById('messagesContainer');
+            const typingIndicator = document.getElementById('typingIndicator');
+            
+            while (messagesContainer.firstChild && messagesContainer.firstChild !== typingIndicator) {
+                messagesContainer.removeChild(messagesContainer.firstChild);
+            }
+            
+            conversationState = {
+                intent: null,
+                slots: {
+                    location: null,
+                    facility_type: null,
+                    accessibility: null,
+                    parking: null,
+                    lighting: null,
+                    time: null
+                },
+                weatherChecked: false,
+                weatherData: null,
+                searchResults: [],
+                currentPage: 0,
+                resultsPerPage: 3,
+                showMorePerPage: 10
+            };
+            
+            setTimeout(() => {
+                addMessage(`שלום! איך אני יכול לעזור לך היום? 😊<br><br>
+                    אני SportsBuddy - הבוט שמתמחה במציאת מתקני ספורט בישראל עם מזג אוויר חכם!<br><br>
+                    💬 <strong>דוגמאות:</strong><br>
+                    🏊‍♂️ "בריכה בתל אביב"<br>
+                    ⚽ "מגרש כדורגל בחיפה"<br>
+                    🌤️ "מזג האוויר בירושלים"<br>
+                    🏃‍♂️ "אולם ספורט נגיש ברחובות"<br><br>
+                    <strong>פשוט כתוב מה אתה מחפש!</strong>`, 'bot');
+            }, 500);
+        }
+
+        // Initialize the application
+        document.addEventListener('DOMContentLoaded', async function() {
+            console.log('🚀 SportsBuddy Code Updated - Version 2.4 - BUTTONS WORKING!'); // Latest update
+            console.log('📍 Data URL:', CONFIG.DATA_URL);
+            
+            // Update connection status immediately
+            updateConnectionStatus(isOnline);
+            
+            // Load data
+            await loadSportsData();
+        });
+
+        // Make functions globally accessible
+        window.handleKeyPress = handleKeyPress;
+        window.sendMessage = sendMessage;
+        window.startNewConversation = startNewConversation;
+        window.showMoreResults = showMoreResults;
+    </script>
+</body>
+</html>
