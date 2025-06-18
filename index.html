@@ -313,6 +313,49 @@
             font-size: 13px;
         }
 
+        .neighborhood-buttons, .direction-buttons {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin: 10px 0;
+        }
+
+        .neighborhood-btn, .direction-btn, .skip-btn {
+            background: linear-gradient(135deg, #f8f9fa, #e9ecef);
+            border: 2px solid #4CAF50;
+            color: #2c3e50;
+            padding: 8px 12px;
+            border-radius: 15px;
+            cursor: pointer;
+            font-size: 12px;
+            font-weight: bold;
+            transition: all 0.3s;
+            direction: rtl;
+            text-align: center;
+            min-width: 60px;
+        }
+
+        .neighborhood-btn:hover, .direction-btn:hover {
+            background: linear-gradient(135deg, #4CAF50, #45a049);
+            color: white;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(76, 175, 80, 0.3);
+        }
+
+        .skip-btn {
+            background: linear-gradient(135deg, #ff9800, #f57c00);
+            border-color: #ff9800;
+            color: white;
+            font-size: 13px;
+            padding: 10px 16px;
+        }
+
+        .skip-btn:hover {
+            background: linear-gradient(135deg, #f57c00, #ef6c00);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(255, 152, 0, 0.3);
+        }
+
         .connection-status {
             padding: 8px 12px;
             border-radius: 6px;
@@ -405,6 +448,7 @@
             intent: null,
             slots: {
                 location: null,
+                neighborhood: null,
                 facility_type: null,
                 accessibility: null,
                 parking: null,
@@ -535,10 +579,10 @@
                     </div>
                     <br>
                     💬 <strong>דוגמאות לשאלות שאני יכול לענות עליהן:</strong><br>
-                    🏊‍♂️ "אני מחפש בריכה בתל אביב"<br>
-                    ⚽ "איפה יש מגרש כדורגל בחיפה?"<br>
+                    🏊‍♂️ "אני מחפש בריכה בתל אביב במרכז העיר"<br>
+                    ⚽ "איפה יש מגרש כדורגל בחיפה באזור הדר?"<br>
                     🌤️ "מה מזג האוויר בירושלים?"<br>
-                    🏃‍♂️ "אולם ספורט עם נגישות ברחובות"<br><br>
+                    🏃‍♂️ "אולם ספורט עם נגישות ברחובות, שכונת מרכז"<br><br>
                     <strong>פשוט כתוב מה אתה מחפש!</strong>
                 `;
             }
@@ -669,6 +713,25 @@
             return cityTranslations[hebrewCity] || hebrewCity;
         }
 
+        // Function to detect English text
+        function isEnglishText(message) {
+            // Count English letters vs Hebrew letters
+            const englishLetters = (message.match(/[a-zA-Z]/g) || []).length;
+            const hebrewLetters = (message.match(/[\u0590-\u05FF]/g) || []).length;
+            const totalLetters = englishLetters + hebrewLetters;
+            
+            // If more than 70% of letters are English, consider it English text
+            if (totalLetters > 0 && (englishLetters / totalLetters) > 0.7) {
+                return true;
+            }
+            
+            // Also check for common English words
+            const commonEnglishWords = ['hello', 'hi', 'thank', 'you', 'what', 'where', 'when', 'how', 'can', 'help', 'find', 'sport', 'pool', 'gym'];
+            const msgLower = message.toLowerCase();
+            
+            return commonEnglishWords.some(word => msgLower.includes(word));
+        }
+
         // Context-aware weather feedback with time consideration
         function getContextualWeatherFeedback(weatherData) {
             if (!weatherData) return null;
@@ -761,6 +824,11 @@
             const msgLower = message.toLowerCase();
             console.log('🧠 Conversation state:', conversationState.intent); // Debug conversation state
             
+            // Check for English text first
+            if (isEnglishText(message)) {
+                return 'english_language';
+            }
+            
             // If we're in the middle of a conversation, treat user input differently
             if (conversationState.intent === 'search_facility') {
                 console.log('✅ In middle of search conversation - continuing as search_facility'); // Debug
@@ -828,25 +896,42 @@
                 thanks: 'תמיד בשמחה! 🙌 אני כאן אם תצטרך מתקן ספורט כלשהו.',
                 how_are_you: 'הכל מצוין, תודה ששאלת! 😊 מוכן לעזור לך למצוא מתקן ספורט נהדר!',
                 what_day: `היום ${getCurrentDate()} 📅 יום נהדר לפעילות ספורט! רוצה שאמצא לך מתקן?`,
-                capabilities: 'אני צ\'אט בוט שמתמחה בעזרה עם מתקני ספורט בישראל 🤸‍♂️<br>אני יכול לעזור לך למצוא מתקנים ולבדוק מזג אוויר!'
+                capabilities: 'אני צ\'אט בוט שמתמחה בעזרה עם מתקני ספורט בישראל 🤸‍♂️<br>אני יכול לעזור לך למצוא מתקנים ולבדוק מזג אוויר!',
+                english_language: `
+                    <div class="off-topic-message">
+                        🌐 אני לא מבין אנגלית - אנא דבר איתי בעברית! 🇮🇱
+                    </div>
+                    <div class="sports-suggestion">
+                        🏃‍♂️ <strong>אני SportsBuddy - הבוט שמתמחה במציאת מתקני ספורט בישראל!</strong><br><br>
+                        💬 <strong>דוגמאות בעברית:</strong><br>
+                        🏊‍♂️ "אני מחפש בריכה בתל אביב"<br>
+                        ⚽ "איפה יש מגרש כדורגל בחיפה?"<br>
+                        🏀 "אולם ספורט ברחובות"<br>
+                        🌤️ "מה מזג האוויר בירושלים?"<br><br>
+                        💡 <strong>פשוט כתוב מה אתה מחפש בעברית!</strong>
+                    </div>
+                `
             };
 
-            // Simple response for anything not sports-related
+            // Enhanced not-sports response with more specific suggestions
             const notSportsResponse = `
                 <div class="off-topic-message">
-                    🤔 אני לא יכול לעזור בזה - זה לא בתחום ההתמחות שלי!
+                    🤔 אני לא בקיא בתחום הזה - אני מתמחה רק במתקני ספורט בישראל!
                 </div>
                 <div class="sports-suggestion">
-                    🏃‍♂️ <strong>אני SportsBuddy - הבוט שמתמחה במציאת מתקני ספורט בישראל!</strong><br><br>
+                    🏃‍♂️ <strong>אני SportsBuddy - הבוט שעוזר למצוא מתקני ספורט ופעילות גופנית!</strong><br><br>
                     💡 <strong>אני יכול לעזור לך למצוא:</strong><br>
-                    🏊‍♂️ בריכות שחייה<br>
-                    ⚽ מגרשי כדורגל<br>
-                    🏀 מגרשי כדורסל<br>
+                    🏊‍♂️ בריכות שחייה (25 מטר, 50 מטר, ילדים)<br>
+                    ⚽ מגרשי כדורגל (דשא, סינטטי, מיני פיץ')<br>
+                    🏀 מגרשי כדורסל (מקורה וחיצוני)<br>
                     🏋️‍♂️ אולמות ספורט וכושר<br>
                     🎾 מגרשי טניס<br>
-                    ועוד הרבה מתקנים...<br><br>
+                    🏐 מגרשי כדורעף (חול ורגיל)<br>
+                    🏃‍♂️ מסלולי ריצה ואתלטיקה<br>
+                    ועוד מתקנים רבים...<br><br>
                     💬 <strong>פשוט כתוב מה אתה מחפש!</strong><br>
-                    לדוגמה: "בריכה בתל אביב" או "מגרש כדורגל בחיפה"
+                    לדוגמה: "בריכה בתל אביב", "מגרש כדורגל בחיפה" או "אולם ספורט ברחובות"<br><br>
+                    🌤️ <strong>בונוס:</strong> אני גם בודק מזג אוויר לפעילויות חיצוניות!
                 </div>
             `;
             
@@ -890,7 +975,7 @@
             
             // Handle non-sports related questions
             if (intent === 'not_sports_related') {
-                console.log('🚫 Returning not-sports response'); // Debug
+                console.log('🚫 Returning enhanced not-sports response'); // Debug
                 return notSportsResponse;
             }
             
@@ -898,6 +983,98 @@
             const basicResponse = responses[intent];
             console.log('📝 Returning basic response for:', intent, basicResponse ? 'Found' : 'Not found'); // Debug
             return basicResponse || notSportsResponse;
+        }
+
+        function findNeighborhoodInData(message, cityName = null) {
+            if (!sportsData || sportsData.length === 0) return null;
+            
+            const msgLower = message.toLowerCase().trim();
+            
+            console.log('🔍 Looking for neighborhood in:', msgLower, 'with city context:', cityName);
+            
+            // Skip if message is too short or generic or looks like city name
+            if (msgLower.length < 3 || 
+                msgLower.includes('אני') || 
+                msgLower.includes('מחפש') ||
+                msgLower.includes('רוצה') ||
+                msgLower.includes('צריך') ||
+                msgLower === 'תל אביב' ||
+                msgLower === 'ירושלים' ||
+                msgLower === 'חיפה') {
+                console.log('🚫 Skipping neighborhood search - generic or city name');
+                return null;
+            }
+            
+            // Get relevant neighborhoods (filter by city if provided)
+            let relevantFacilities = sportsData;
+            if (cityName) {
+                relevantFacilities = sportsData.filter(f => 
+                    f['ישוב'] && f['ישוב'].toLowerCase().includes(cityName.toLowerCase())
+                );
+            }
+            
+            // Get unique neighborhoods from relevant facilities
+            const neighborhoods = [...new Set(
+                relevantFacilities
+                    .map(f => f['שכונה-רובע']) // Fixed: use bracket notation
+                    .filter(n => n && n !== 'לא ידוע' && String(n).trim() !== '' && String(n).trim().length > 2)
+                    .map(n => String(n).trim())
+            )];
+            
+            console.log('🏘️ Available neighborhoods:', neighborhoods.slice(0, 5));
+            
+            // 1. Exact match (only for longer strings)
+            for (const neighborhood of neighborhoods) {
+                if (msgLower === neighborhood.toLowerCase() && msgLower.length > 3) {
+                    console.log('🎯 Exact neighborhood match:', neighborhood);
+                    return neighborhood;
+                }
+            }
+            
+            // 2. REMOVED partial match to avoid false positives like "תל אביב" → "מרינה תל אביב"
+            
+            // 3. Reverse partial match (neighborhood name contained in user input) - minimum 5 chars and must be specific
+            if (msgLower.length >= 5) {
+                for (const neighborhood of neighborhoods) {
+                    if (msgLower.includes(neighborhood.toLowerCase()) && 
+                        neighborhood.length >= 5 && 
+                        !neighborhood.toLowerCase().includes('תל אביב') &&
+                        !neighborhood.toLowerCase().includes('ירושלים') &&
+                        !neighborhood.toLowerCase().includes('חיפה')) {
+                        console.log('🔍 Reverse partial neighborhood match:', neighborhood);
+                        return neighborhood;
+                    }
+                }
+            }
+            
+            // 4. Common neighborhood patterns - only specific patterns
+            const neighborhoodPatterns = {
+                'מרכז העיר': ['מרכז העיר'],
+                'מרכז': ['מרכז', 'מרכז המושב', 'מרכז היישוב'],
+                'צפון': ['צפונית', 'צפון', 'שכונה צפונית'],
+                'דרום': ['דרומית', 'דרום', 'שכונה דרומית'],
+                'מזרח': ['מזרחית', 'מזרח', 'שכונה מזרחית'],
+                'מערב': ['מערבית', 'מערב', 'שכונה מערבית'],
+                'אזור תעשיה': ['אזור תעשיה', 'אזור תעשייה', 'תעשיה'],
+                'תירות': ['תירות', 'תירות א\'', 'תירות ב\'']
+            };
+            
+            for (const [pattern, variations] of Object.entries(neighborhoodPatterns)) {
+                if (msgLower === pattern || (msgLower.includes(pattern) && msgLower.length >= 4)) {
+                    // Look for any of the variations in actual neighborhoods
+                    for (const variation of variations) {
+                        for (const neighborhood of neighborhoods) {
+                            if (neighborhood.toLowerCase().includes(variation.toLowerCase())) {
+                                console.log('🎯 Pattern neighborhood match:', neighborhood);
+                                return neighborhood;
+                            }
+                        }
+                    }
+                }
+            }
+            
+            console.log('❌ No neighborhood match found');
+            return null;
         }
 
         function findLocationInData(message) {
@@ -966,6 +1143,7 @@
             const extractedInfo = {
                 facility_type: null,
                 location: null,
+                neighborhood: null,
                 time: null,
                 accessibility: null,
                 parking: null,
@@ -975,6 +1153,13 @@
             extractedInfo.facility_type = findFacilityTypeInData(message);
             extractedInfo.location = findLocationInData(message);
             extractedInfo.time = extractTimeFromMessage(message);
+            
+            // Extract neighborhood if location is already known
+            if (extractedInfo.location) {
+                extractedInfo.neighborhood = findNeighborhoodInData(message, extractedInfo.location);
+            } else {
+                extractedInfo.neighborhood = findNeighborhoodInData(message);
+            }
             
             if (msgLower.includes('נגיש') || msgLower.includes('מוגבל') || 
                 msgLower.includes('כיסא גלגל') || msgLower.includes('נכים')) {
@@ -1032,6 +1217,19 @@
                 entities.location = findLocationInData(message);
             }
             
+            if (!conversationState.slots.neighborhood) {
+                // ONLY search for neighborhood if we're NOT answering the location question
+                // and we're NOT in a generic search phrase
+                const isLocationAnswer = conversationState.slots.location === null && entities.location;
+                const isGenericSearch = msgLower.includes('מחפש') || msgLower.includes('רוצה') || msgLower.includes('צריך');
+                
+                if (!isLocationAnswer && !isGenericSearch) {
+                    // If we have a location, search neighborhood within that city
+                    const contextLocation = entities.location || conversationState.slots.location;
+                    entities.neighborhood = findNeighborhoodInData(message, contextLocation);
+                }
+            }
+            
             if (!conversationState.slots.time) {
                 const timeEntity = extractTimeFromMessage(message);
                 if (timeEntity) {
@@ -1043,6 +1241,8 @@
                                 msgLower.includes('בוודאי') || msgLower.includes('חשוב לי');
             const isNoResponse = msgLower.includes('לא') || msgLower.includes('no') || 
                                msgLower.includes('לא חשוב') || msgLower.includes('בלי');
+            const isSkipResponse = msgLower.includes('דלג') || msgLower.includes('לא משנה') || 
+                                 msgLower.includes('כל שכונה') || msgLower.includes('בכל מקום');
             
             if (msgLower.includes('נגיש') || msgLower.includes('מוגבל') || msgLower.includes('כיסא גלגל')) {
                 entities.accessibility = 'כן';
@@ -1069,6 +1269,11 @@
             } else if (conversationState.slots.lighting === null && conversationState.slots.parking !== null) {
                 if (isYesResponse) entities.lighting = 'כן';
                 if (isNoResponse) entities.lighting = 'לא';
+            }
+            
+            // Handle neighborhood skip
+            if (isSkipResponse && conversationState.slots.location && !conversationState.slots.neighborhood) {
+                entities.neighborhood = 'any'; // Special value to indicate user wants any neighborhood
             }
             
             return entities;
@@ -1159,11 +1364,62 @@
         }
 
         function getMissingSlots() {
-            const required = ['location', 'facility_type', 'time', 'accessibility', 'parking', 'lighting'];
-            return required.filter(slot => conversationState.slots[slot] === null);
+            // Core required slots handled separately
+            const optionalSlots = ['time', 'accessibility', 'parking', 'lighting'];
+            return optionalSlots.filter(slot => conversationState.slots[slot] === null);
+        }
+
+        function getNeighborhoodsForCity(cityName) {
+            if (!sportsData || !cityName) return [];
+            
+            console.log('🏘️ Getting neighborhoods for city:', cityName);
+            
+            // Filter facilities by city
+            const cityFacilities = sportsData.filter(f => 
+                f['ישוב'] && f['ישוב'].toLowerCase().includes(cityName.toLowerCase())
+            );
+            
+            console.log('🏢 Found facilities in city:', cityFacilities.length);
+            
+            // Extract unique neighborhoods, excluding invalid ones
+            const neighborhoods = [...new Set(
+                cityFacilities
+                    .map(f => f['שכונה-רובע']) // Fixed: use bracket notation
+                    .filter(n => {
+                        if (!n) return false;
+                        const neighborhood = String(n).trim();
+                        
+                        // Exclude these values
+                        const excludeValues = [
+                            'לא ידוע', 'לא קיים', 'לא רלוונטי', 'לא נתון', 
+                            'ללא', 'אין', 'לא זמין', 'לא מוגדר', '-', 'לא מפורט',
+                            '', 'null', 'undefined', 'נ/א'
+                        ];
+                        
+                        const isExcluded = excludeValues.some(exclude => 
+                            neighborhood.toLowerCase() === exclude.toLowerCase()
+                        );
+                        
+                        return !isExcluded && neighborhood.length > 1;
+                    })
+                    .map(n => String(n).trim())
+            )];
+            
+            console.log('🗂️ Unique neighborhoods found:', neighborhoods);
+            
+            // Sort neighborhoods alphabetically in Hebrew
+            neighborhoods.sort((a, b) => a.localeCompare(b, 'he'));
+            
+            // Limit to reasonable number for display
+            const maxNeighborhoods = 15;
+            const result = neighborhoods.slice(0, maxNeighborhoods);
+            
+            console.log('📋 Final neighborhood list:', result);
+            return result;
         }
 
         function askForMissingInfo(missingSlots) {
+            // Handle core slots first
             if (missingSlots.includes('location')) {
                 return 'באיזה עיר או יישוב אתה מעוניין? 🏙️';
             }
@@ -1180,6 +1436,12 @@
                 
                 return facilityPrompt;
             }
+            if (missingSlots.includes('neighborhood')) {
+                const cityName = conversationState.slots.location;
+                return createNeighborhoodSelectionMessage(cityName);
+            }
+            
+            // Handle optional slots
             if (missingSlots.includes('time')) {
                 return 'מתי אתה רוצה להתאמן? ⏰<br><br>💬 לדוגמה: "עכשיו", "מחר בבוקר", "היום בערב", "בעוד שעה"';
             }
@@ -1193,6 +1455,168 @@
                 return 'האם יש צורך בתאורה? (כן/לא) 💡';
             }
             return null;
+        }
+
+        function createNeighborhoodSelectionMessage(cityName) {
+            const availableNeighborhoods = getNeighborhoodsForCity(cityName);
+            
+            let message = `באיזה שכונה או אזור ב${cityName}? 🏘️<br><br>`;
+            
+            if (availableNeighborhoods.length > 0) {
+                message += '📍 <strong>בחר שכונה:</strong><br><br>';
+                
+                // Create clickable buttons for neighborhoods
+                const neighborhoodButtons = availableNeighborhoods.map(neighborhood => 
+                    `<button class="neighborhood-btn" onclick="selectNeighborhood('${neighborhood}')">${neighborhood}</button>`
+                ).join(' ');
+                
+                message += `<div class="neighborhood-buttons">${neighborhoodButtons}</div><br>`;
+                
+                // Add general direction buttons
+                message += '<strong>או בחר כיוון כללי:</strong><br><br>';
+                const directionButtons = [
+                    { name: 'מרכז העיר', value: 'מרכז' },
+                    { name: 'צפון', value: 'צפון' },
+                    { name: 'דרום', value: 'דרום' },
+                    { name: 'מזרח', value: 'מזרח' },
+                    { name: 'מערב', value: 'מערב' }
+                ].map(dir => 
+                    `<button class="direction-btn" onclick="selectNeighborhood('${dir.value}')">${dir.name}</button>`
+                ).join(' ');
+                
+                message += `<div class="direction-buttons">${directionButtons}</div><br>`;
+                
+                // Add skip option
+                message += '<strong>או:</strong><br>';
+                message += '<button class="skip-btn" onclick="selectNeighborhood(\'any\')">🌍 כל השכונות</button>';
+                
+            } else {
+                message += '⚠️ <strong>לא נמצאו שכונות ספציפיות במערכת</strong><br><br>';
+                message += '<button class="skip-btn" onclick="selectNeighborhood(\'any\')">🌍 המשך לחיפוש בכל העיר</button>';
+            }
+            
+            return message;
+        }
+
+        // Function to handle neighborhood selection
+        function selectNeighborhood(neighborhoodValue) {
+            console.log('🏘️ Neighborhood selected:', neighborhoodValue);
+            
+            // Update the conversation state
+            conversationState.slots.neighborhood = neighborhoodValue;
+            
+            // Add user message to show what was selected
+            if (neighborhoodValue === 'any') {
+                addMessage('כל השכונות', 'user');
+            } else {
+                addMessage(neighborhoodValue, 'user');
+            }
+            
+            // Continue the conversation flow
+            setTimeout(() => {
+                processNeighborhoodSelection();
+            }, 500);
+        }
+
+        async function processNeighborhoodSelection() {
+            // Check missing core info first (location, facility_type, neighborhood)
+            const coreSlots = ['location', 'facility_type', 'neighborhood'];
+            const missingCoreSlots = coreSlots.filter(slot => conversationState.slots[slot] === null);
+            
+            console.log('🔍 Core slots status after neighborhood:', {
+                location: conversationState.slots.location,
+                facility_type: conversationState.slots.facility_type,
+                neighborhood: conversationState.slots.neighborhood,
+                missingCoreSlots: missingCoreSlots
+            });
+            
+            if (missingCoreSlots.length > 0) {
+                const question = askForMissingInfo(missingCoreSlots);
+                if (question) {
+                    addMessage(question, 'bot');
+                    return;
+                }
+            }
+            
+            // Now check weather if we have location + facility_type + neighborhood (or user skipped neighborhood)
+            const hasBasicInfo = conversationState.slots.location && conversationState.slots.facility_type && 
+                                (conversationState.slots.neighborhood !== null);
+            
+            console.log('🌤️ Weather check after neighborhood:', {
+                hasBasicInfo: hasBasicInfo,
+                weatherChecked: conversationState.weatherChecked,
+                facilityType: conversationState.slots.facility_type,
+                isOutdoor: OUTDOOR_FACILITIES.includes(conversationState.slots.facility_type)
+            });
+            
+            if (hasBasicInfo && !conversationState.weatherChecked && 
+                OUTDOOR_FACILITIES.includes(conversationState.slots.facility_type)) {
+                
+                addMessage('רגע אחד, בודק את מזג האוויר... 🌤️', 'bot');
+                showTypingIndicator();
+                
+                const weatherData = await getWeatherData(conversationState.slots.location);
+                conversationState.weatherData = weatherData;
+                conversationState.weatherChecked = true;
+                
+                hideTypingIndicator();
+                
+                if (weatherData) {
+                    const contextualFeedback = getContextualWeatherFeedback(weatherData);
+                    if (contextualFeedback) {
+                        addMessage(contextualFeedback, 'bot');
+                    }
+                } else {
+                    addMessage('לא הצלחתי לקבל נתוני מזג אוויר, אבל אמשיך לחפש מתקנים! 🌤️', 'bot');
+                }
+            }
+            
+            // Check remaining optional slots (time, accessibility, parking, lighting)
+            const optionalSlots = ['time', 'accessibility', 'parking', 'lighting'];
+            const missingOptionalSlots = optionalSlots.filter(slot => conversationState.slots[slot] === null);
+            
+            if (missingOptionalSlots.length > 0) {
+                const question = askForMissingInfo(missingOptionalSlots);
+                if (question) {
+                    addMessage(question, 'bot');
+                    return;
+                }
+            }
+            
+            // If we got here, we have all the info - search for facilities
+            const facilities = filterFacilities();
+            
+            // Debug: show search criteria
+            console.log('🔍 Final search with slots:', conversationState.slots);
+            if (conversationState.slots.neighborhood && conversationState.slots.neighborhood !== 'any') {
+                console.log(`🔍 Searching with neighborhood filter: "${conversationState.slots.neighborhood}"`);
+            }
+            
+            if (facilities.length > 0) {
+                displayPaginatedResults(facilities, true);
+            } else {
+                addMessage('לא מצאתי מתקנים שמתאימים לבקשתך. 😔<br><br>💡 נסה לשנות את הקריטריונים או לכתוב בקשה אחרת.', 'bot');
+            }
+            
+            // Reset conversation state
+            conversationState = {
+                intent: null,
+                slots: {
+                    location: null,
+                    neighborhood: null,
+                    facility_type: null,
+                    accessibility: null,
+                    parking: null,
+                    lighting: null,
+                    time: null
+                },
+                weatherChecked: false,
+                weatherData: null,
+                searchResults: [],
+                currentPage: 0,
+                resultsPerPage: 3,
+                showMorePerPage: 10
+            };
         }
 
         function getAvailableFacilityTypes() {
@@ -1210,6 +1634,22 @@
                     const targetLocation = conversationState.slots.location.toLowerCase();
                     const facilityLocation = (facility['ישוב'] || '').toLowerCase();
                     if (!facilityLocation.includes(targetLocation)) return false;
+                }
+                
+                if (conversationState.slots.neighborhood && conversationState.slots.neighborhood !== 'any') {
+                    const targetNeighborhood = conversationState.slots.neighborhood.toLowerCase();
+                    const facilityNeighborhood = (facility['שכונה-רובע'] || '').toLowerCase(); // Fixed: use bracket notation
+                    
+                    // Check if neighborhood matches
+                    const neighborhoodMatches = 
+                        facilityNeighborhood.includes(targetNeighborhood) ||
+                        targetNeighborhood.includes(facilityNeighborhood) ||
+                        facilityNeighborhood === targetNeighborhood;
+                    
+                    // If no match, also allow "לא ידוע" facilities as fallback
+                    if (!neighborhoodMatches && facility['שכונה-רובע'] !== 'לא ידוע') { // Fixed: use bracket notation
+                        return false;
+                    }
                 }
                 
                 if (conversationState.slots.facility_type) {
@@ -1361,7 +1801,6 @@
             conversationState.currentPage++;
         }
 
-
         function showMoreResults() {
             displayPaginatedResults(conversationState.searchResults, false);
         }
@@ -1370,10 +1809,12 @@
             const facilityName = facility['שם המתקן'] || 'שם לא זמין';
             const facilityType = facility['סוג מתקן'] || 'סוג לא צוין';
             const city = facility['ישוב'] || 'עיר לא צוינה';
+            const neighborhood = facility['שכונה-רובע'];
             const phone = facility['טלפון איש קשר'];
             const availability = facility['פנוי לפעילות'] || 'לא צוין';
             
             const hasValidPhone = phone && phone !== 'לא קיים' && phone.trim() !== '';
+            const hasValidNeighborhood = neighborhood && neighborhood !== 'לא ידוע' && neighborhood.trim() !== '';
             
             let timeNote = '';
             if (conversationState.slots.time) {
@@ -1383,13 +1824,19 @@
                 }
             }
             
+            // Build location string with neighborhood if available
+            let locationStr = `📍 <strong>${city}</strong>`;
+            if (hasValidNeighborhood) {
+                locationStr += `, ${neighborhood}`;
+            }
+            
             const googleMapsUrl = `https://www.google.com/maps/search/${encodeURIComponent(facilityName + ', ' + city)}`;
             
             return `<div class="facility-card">
                 <div class="facility-name">${facilityName}</div>
                 <div class="facility-type">${facilityType}</div>
                 <div class="facility-details">
-                    📍 <strong>${city}</strong><br>
+                    ${locationStr}<br>
                     ${hasValidPhone ? '📞 ' + phone + '<br>' : ''}
                     🕐 <strong>זמינות:</strong> ${availability}${timeNote}
                 </div>
@@ -1414,7 +1861,7 @@
                 const intent = recognizeIntent(message);
                 hideTypingIndicator();
                 
-                if (['greeting', 'thanks', 'how_are_you', 'what_day', 'capabilities', 'weather_specific', 'off_topic'].includes(intent)) {
+                if (['greeting', 'thanks', 'how_are_you', 'what_day', 'capabilities', 'weather_specific', 'english_language', 'not_sports_related'].includes(intent)) {
                     const response = await handleSmallTalk(intent, message);
                     if (response) {
                         addMessage(response, 'bot');
@@ -1439,7 +1886,47 @@
                     const entities = extractEntities(message);
                     updateSlots(entities);
                     
-                    const hasBasicInfo = conversationState.slots.location && conversationState.slots.facility_type;
+                    // Show neighborhood confirmation ONLY if it's a meaningful detection
+                    if (entities.neighborhood && entities.neighborhood !== 'any' && entities.neighborhood.length > 2) {
+                        const cityName = entities.location || conversationState.slots.location;
+                        if (cityName) {
+                            addMessage(`✅ מחפש ב${cityName}, אזור ${entities.neighborhood}`, 'bot');
+                        } else {
+                            addMessage(`✅ זיהיתי שכונה: ${entities.neighborhood}`, 'bot');
+                        }
+                    } else if (entities.neighborhood === 'any') {
+                        addMessage(`✅ מחפש בכל השכונות`, 'bot');
+                    }
+                    
+                    // Check missing core info first (location, facility_type, neighborhood)
+                    const coreSlots = ['location', 'facility_type', 'neighborhood'];
+                    const missingCoreSlots = coreSlots.filter(slot => conversationState.slots[slot] === null);
+                    
+                    console.log('🔍 Core slots status:', {
+                        location: conversationState.slots.location,
+                        facility_type: conversationState.slots.facility_type,
+                        neighborhood: conversationState.slots.neighborhood,
+                        missingCoreSlots: missingCoreSlots
+                    });
+                    
+                    if (missingCoreSlots.length > 0) {
+                        const question = askForMissingInfo(missingCoreSlots);
+                        if (question) {
+                            addMessage(question, 'bot');
+                            return;
+                        }
+                    }
+                    
+                    // Now check weather if we have location + facility_type + neighborhood (or user skipped neighborhood)
+                    const hasBasicInfo = conversationState.slots.location && conversationState.slots.facility_type && 
+                                        (conversationState.slots.neighborhood !== null);
+                    
+                    console.log('🌤️ Weather check:', {
+                        hasBasicInfo: hasBasicInfo,
+                        weatherChecked: conversationState.weatherChecked,
+                        facilityType: conversationState.slots.facility_type,
+                        isOutdoor: OUTDOOR_FACILITIES.includes(conversationState.slots.facility_type)
+                    });
                     
                     if (hasBasicInfo && !conversationState.weatherChecked && 
                         OUTDOOR_FACILITIES.includes(conversationState.slots.facility_type)) {
@@ -1468,10 +1955,12 @@
                         addMessage('מעולה! מחפש לך מתקן מקורה... 🏢', 'bot');
                     }
                     
-                    const missingSlots = getMissingSlots();
+                    // Check remaining optional slots (time, accessibility, parking, lighting)
+                    const optionalSlots = ['time', 'accessibility', 'parking', 'lighting'];
+                    const missingOptionalSlots = optionalSlots.filter(slot => conversationState.slots[slot] === null);
                     
-                    if (missingSlots.length > 0) {
-                        const question = askForMissingInfo(missingSlots);
+                    if (missingOptionalSlots.length > 0) {
+                        const question = askForMissingInfo(missingOptionalSlots);
                         if (question) {
                             addMessage(question, 'bot');
                             return;
@@ -1480,16 +1969,24 @@
                     
                     const facilities = filterFacilities();
                     
+                    // Debug: show search criteria
+                    console.log('🔍 Final search with slots:', conversationState.slots);
+                    if (conversationState.slots.neighborhood && conversationState.slots.neighborhood !== 'any') {
+                        console.log(`🔍 Searching with neighborhood filter: "${conversationState.slots.neighborhood}"`);
+                    }
+                    
                     if (facilities.length > 0) {
                         displayPaginatedResults(facilities, true);
                     } else {
                         addMessage('לא מצאתי מתקנים שמתאימים לבקשתך. 😔<br><br>💡 נסה לשנות את הקריטריונים או לכתוב בקשה אחרת.', 'bot');
                     }
                     
+                    // Reset conversation state
                     conversationState = {
                         intent: null,
                         slots: {
                             location: null,
+                            neighborhood: null,
                             facility_type: null,
                             accessibility: null,
                             parking: null,
@@ -1590,6 +2087,7 @@
                 intent: null,
                 slots: {
                     location: null,
+                    neighborhood: null,
                     facility_type: null,
                     accessibility: null,
                     parking: null,
@@ -1608,8 +2106,8 @@
                 addMessage(`שלום! איך אני יכול לעזור לך היום? 😊<br><br>
                     אני SportsBuddy - הבוט שמתמחה במציאת מתקני ספורט בישראל עם מזג אוויר חכם!<br><br>
                     💬 <strong>דוגמאות:</strong><br>
-                    🏊‍♂️ "בריכה בתל אביב"<br>
-                    ⚽ "מגרש כדורגל בחיפה"<br>
+                    🏊‍♂️ "בריכה בתל אביב במרכז"<br>
+                    ⚽ "מגרש כדורגל בחיפה באזור הדר"<br>
                     🌤️ "מזג האוויר בירושלים"<br>
                     🏃‍♂️ "אולם ספורט נגיש ברחובות"<br><br>
                     <strong>פשוט כתוב מה אתה מחפש!</strong>`, 'bot');
@@ -1618,7 +2116,7 @@
 
         // Initialize the application
         document.addEventListener('DOMContentLoaded', async function() {
-            console.log('🚀 SportsBuddy Code Updated - Version 2.4 - BUTTONS WORKING!'); // Latest update
+            console.log('🚀 SportsBuddy Code Updated - Version 3.4 - WITH ENGLISH DETECTION!'); // Latest update
             console.log('📍 Data URL:', CONFIG.DATA_URL);
             
             // Update connection status immediately
@@ -1633,6 +2131,7 @@
         window.sendMessage = sendMessage;
         window.startNewConversation = startNewConversation;
         window.showMoreResults = showMoreResults;
+        window.selectNeighborhood = selectNeighborhood;
     </script>
 </body>
 </html>
