@@ -448,7 +448,6 @@
             intent: null,
             slots: {
                 location: null,
-                neighborhood: null,
                 facility_type: null,
                 accessibility: null,
                 parking: null,
@@ -1217,19 +1216,6 @@
                 entities.location = findLocationInData(message);
             }
             
-            if (!conversationState.slots.neighborhood) {
-                // ONLY search for neighborhood if we're NOT answering the location question
-                // and we're NOT in a generic search phrase
-                const isLocationAnswer = conversationState.slots.location === null && entities.location;
-                const isGenericSearch = msgLower.includes('מחפש') || msgLower.includes('רוצה') || msgLower.includes('צריך');
-                
-                if (!isLocationAnswer && !isGenericSearch) {
-                    // If we have a location, search neighborhood within that city
-                    const contextLocation = entities.location || conversationState.slots.location;
-                    entities.neighborhood = findNeighborhoodInData(message, contextLocation);
-                }
-            }
-            
             if (!conversationState.slots.time) {
                 const timeEntity = extractTimeFromMessage(message);
                 if (timeEntity) {
@@ -1241,8 +1227,6 @@
                                 msgLower.includes('בוודאי') || msgLower.includes('חשוב לי');
             const isNoResponse = msgLower.includes('לא') || msgLower.includes('no') || 
                                msgLower.includes('לא חשוב') || msgLower.includes('בלי');
-            const isSkipResponse = msgLower.includes('דלג') || msgLower.includes('לא משנה') || 
-                                 msgLower.includes('כל שכונה') || msgLower.includes('בכל מקום');
             
             if (msgLower.includes('נגיש') || msgLower.includes('מוגבל') || msgLower.includes('כיסא גלגל')) {
                 entities.accessibility = 'כן';
@@ -1269,11 +1253,6 @@
             } else if (conversationState.slots.lighting === null && conversationState.slots.parking !== null) {
                 if (isYesResponse) entities.lighting = 'כן';
                 if (isNoResponse) entities.lighting = 'לא';
-            }
-            
-            // Handle neighborhood skip
-            if (isSkipResponse && conversationState.slots.location && !conversationState.slots.neighborhood) {
-                entities.neighborhood = 'any'; // Special value to indicate user wants any neighborhood
             }
             
             return entities;
@@ -1435,10 +1414,6 @@
                 }
                 
                 return facilityPrompt;
-            }
-            if (missingSlots.includes('neighborhood')) {
-                const cityName = conversationState.slots.location;
-                return createNeighborhoodSelectionMessage(cityName);
             }
             
             // Handle optional slots
@@ -1603,7 +1578,6 @@
                 intent: null,
                 slots: {
                     location: null,
-                    neighborhood: null,
                     facility_type: null,
                     accessibility: null,
                     parking: null,
@@ -1634,22 +1608,6 @@
                     const targetLocation = conversationState.slots.location.toLowerCase();
                     const facilityLocation = (facility['ישוב'] || '').toLowerCase();
                     if (!facilityLocation.includes(targetLocation)) return false;
-                }
-                
-                if (conversationState.slots.neighborhood && conversationState.slots.neighborhood !== 'any') {
-                    const targetNeighborhood = conversationState.slots.neighborhood.toLowerCase();
-                    const facilityNeighborhood = (facility['שכונה-רובע'] || '').toLowerCase(); // Fixed: use bracket notation
-                    
-                    // Check if neighborhood matches
-                    const neighborhoodMatches = 
-                        facilityNeighborhood.includes(targetNeighborhood) ||
-                        targetNeighborhood.includes(facilityNeighborhood) ||
-                        facilityNeighborhood === targetNeighborhood;
-                    
-                    // If no match, also allow "לא ידוע" facilities as fallback
-                    if (!neighborhoodMatches && facility['שכונה-רובע'] !== 'לא ידוע') { // Fixed: use bracket notation
-                        return false;
-                    }
                 }
                 
                 if (conversationState.slots.facility_type) {
@@ -1886,26 +1844,13 @@
                     const entities = extractEntities(message);
                     updateSlots(entities);
                     
-                    // Show neighborhood confirmation ONLY if it's a meaningful detection
-                    if (entities.neighborhood && entities.neighborhood !== 'any' && entities.neighborhood.length > 2) {
-                        const cityName = entities.location || conversationState.slots.location;
-                        if (cityName) {
-                            addMessage(`✅ מחפש ב${cityName}, אזור ${entities.neighborhood}`, 'bot');
-                        } else {
-                            addMessage(`✅ זיהיתי שכונה: ${entities.neighborhood}`, 'bot');
-                        }
-                    } else if (entities.neighborhood === 'any') {
-                        addMessage(`✅ מחפש בכל השכונות`, 'bot');
-                    }
-                    
-                    // Check missing core info first (location, facility_type, neighborhood)
-                    const coreSlots = ['location', 'facility_type', 'neighborhood'];
+                    // Check missing core info first (location, facility_type)
+                    const coreSlots = ['location', 'facility_type'];
                     const missingCoreSlots = coreSlots.filter(slot => conversationState.slots[slot] === null);
                     
                     console.log('🔍 Core slots status:', {
                         location: conversationState.slots.location,
                         facility_type: conversationState.slots.facility_type,
-                        neighborhood: conversationState.slots.neighborhood,
                         missingCoreSlots: missingCoreSlots
                     });
                     
@@ -1917,9 +1862,8 @@
                         }
                     }
                     
-                    // Now check weather if we have location + facility_type + neighborhood (or user skipped neighborhood)
-                    const hasBasicInfo = conversationState.slots.location && conversationState.slots.facility_type && 
-                                        (conversationState.slots.neighborhood !== null);
+                    // Now check weather if we have location + facility_type
+                    const hasBasicInfo = conversationState.slots.location && conversationState.slots.facility_type;
                     
                     console.log('🌤️ Weather check:', {
                         hasBasicInfo: hasBasicInfo,
@@ -1986,7 +1930,6 @@
                         intent: null,
                         slots: {
                             location: null,
-                            neighborhood: null,
                             facility_type: null,
                             accessibility: null,
                             parking: null,
@@ -2116,7 +2059,7 @@
 
         // Initialize the application
         document.addEventListener('DOMContentLoaded', async function() {
-            console.log('🚀 SportsBuddy Code Updated - Version 3.4 - WITH ENGLISH DETECTION!'); // Latest update
+            console.log('🚀 SportsBuddy Code Updated - Version 3.5 - WITHOUT NEIGHBORHOOD SELECTION!'); // Latest update
             console.log('📍 Data URL:', CONFIG.DATA_URL);
             
             // Update connection status immediately
